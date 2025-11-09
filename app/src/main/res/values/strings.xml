@@ -1,3 +1,20 @@
 <resources>
     <string name="app_name">InFlightSalesApp</string>
+    <string name="products">Products</string>
+    <string name="product_image">Product Image</string>
+    <string name="remove">Remove</string>
+    <string name="add">Add</string>
+    <string name="dropdown_arrow">Dropdown Arrow</string>
+    <string name="currency">Currency: %1$s</string>
+    <string name="filter">Filter: %1$s</string>
+    <string name="all_products">All Products</string>
+    <string name="food">Food</string>
+    <string name="beverages">Beverages</string>
+    <string name="pay">PAY %1$s %2$s</string>
+    <!-- Customer types -->
+    <string name="customer_type_retail">Retail</string>
+    <string name="customer_type_crew">Crew</string>
+    <string name="customer_type_happy_hour">Happy Hour</string>
+    <string name="customer_type_business_invitation">Business Invitation</string>
+    <string name="customer_type_tourist_invitation">Tourist Invitation</string>
 </resources>

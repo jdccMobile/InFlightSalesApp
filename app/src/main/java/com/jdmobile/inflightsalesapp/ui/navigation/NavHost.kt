@@ -15,7 +15,9 @@ fun NavHost() {
         startDestination = Route.Product,
     ) {
         composable<Route.Product> {
-            ProductDestination()
+            ProductDestination(
+                onNavBack = { navController.popBackStack() },
+            )
         }
         composable<Route.Payment> {
             PaymentDestination()

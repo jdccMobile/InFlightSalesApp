@@ -12,6 +12,10 @@ composeBom = "2024.09.00"
 koin = "4.1.1"
 # Navigation
 navigationCompose = "2.9.0"
+# Material Icons
+material-icons = "1.7.3"
+# Coil
+coil = "2.7.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -34,7 +38,11 @@ koin-androidx-navigation = { module = "io.insert-koin:koin-androidx-navigation",
 koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin" }
 # Navigation
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
-
+# Material Icons
+material-icons = { group = "org.jetbrains.compose.material", name = "material-icons-core", version.ref = "material-icons" }
+material-icons-extended = { group = "org.jetbrains.compose.material", name = "material-icons-extended", version.ref = "material-icons" }
+# Coil
+coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coil" }
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
