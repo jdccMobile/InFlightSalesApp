@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlinx.serialization)
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -74,4 +75,8 @@ dependencies {
     implementation(libs.converter.gson)
     // Arrow
     implementation(libs.arrow.core)
+    // Room
+    implementation(libs.room.common)
+    implementation(libs.room.runtime)
+    ksp(libs.room.compiler)
 }

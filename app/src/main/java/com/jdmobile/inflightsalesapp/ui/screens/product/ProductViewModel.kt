@@ -1,19 +1,16 @@
 package com.jdmobile.inflightsalesapp.ui.screens.product
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.jdmobile.inflightsalesapp.data.repository.ProductRepository
 import com.jdmobile.inflightsalesapp.domain.model.ProductId
 import com.jdmobile.inflightsalesapp.ui.screens.product.model.Currency
 import com.jdmobile.inflightsalesapp.ui.screens.product.model.CustomerType
 import com.jdmobile.inflightsalesapp.ui.screens.product.model.ProductFilter
 import com.jdmobile.inflightsalesapp.ui.screens.product.model.ProductUi
-import com.jdmobile.inflightsalesapp.ui.screens.product.model.toUi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 
 class ProductViewModel(
     private val screenActions: ProductScreenActions,
@@ -28,22 +25,7 @@ class ProductViewModel(
     }
 
     private fun loadProducts() {
-        viewModelScope.launch {
-            productRepository.getProducts().map { products ->
-                val uiProducts = products.map { it.toUi() }
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        allProducts = uiProducts,
-                        products = uiProducts
-                    )
-                }
-            }.mapLeft {
-                _uiState.update {
-                    it.copy(isLoading = false, isThereError = true)
-                }
-            }
-        }
+        // TODO add usecase
     }
 
     fun onFilterSelected(filter: ProductFilter) {

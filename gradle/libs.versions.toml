@@ -1,18 +1,18 @@
 [versions]
 agp = "8.13.0"
 
-kotlin = "2.0.21"
+kotlin = "2.2.21"
 coreKtx = "1.17.0"
 junit = "4.13.2"
 junitVersion = "1.3.0"
 espressoCore = "3.7.0"
-lifecycleRuntimeKtx = "2.6.1"
+lifecycleRuntimeKtx = "2.9.4"
 activityCompose = "1.11.0"
-composeBom = "2024.09.00"
+composeBom = "2025.11.00"
 # Koin
 koin = "4.1.1"
 # Navigation
-navigationCompose = "2.9.0"
+navigationCompose = "2.9.6"
 # Material Icons
 material-icons = "1.7.3"
 # Coil
@@ -22,6 +22,10 @@ retrofit = "3.0.0"
 converterGson = "3.0.0"
 # Arrow
 arrowCore = "1.1.2"
+# Room
+room = "2.8.3"
+# ksp
+ksp = "2.2.21-2.0.4"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -55,10 +59,14 @@ retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit
 converter-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "converterGson" }
 # Arrow
 arrow-core = { module = "io.arrow-kt:arrow-core", version.ref = "arrowCore" }
+# Room
+room-common = { group = "androidx.room", name = "room-common", version.ref = "room" }
+room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlinx-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
-
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

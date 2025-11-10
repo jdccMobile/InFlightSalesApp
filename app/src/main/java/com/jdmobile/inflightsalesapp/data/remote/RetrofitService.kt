@@ -1,6 +1,6 @@
 package com.jdmobile.inflightsalesapp.data.remote
 
-import com.jdmobile.inflightsalesapp.data.remote.model.ProductResponse
+import com.jdmobile.inflightsalesapp.data.remote.product.ProductResponse
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET

@@ -1,4 +1,4 @@
-package com.jdmobile.inflightsalesapp.data.remote.model
+package com.jdmobile.inflightsalesapp.data.remote.product
 
 import com.google.gson.annotations.SerializedName
 
