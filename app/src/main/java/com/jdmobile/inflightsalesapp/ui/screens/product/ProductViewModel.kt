@@ -1,120 +1,55 @@
 package com.jdmobile.inflightsalesapp.ui.screens.product
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.jdmobile.inflightsalesapp.data.repository.ProductRepository
+import com.jdmobile.inflightsalesapp.domain.model.ProductId
+import com.jdmobile.inflightsalesapp.ui.screens.product.model.Currency
+import com.jdmobile.inflightsalesapp.ui.screens.product.model.CustomerType
+import com.jdmobile.inflightsalesapp.ui.screens.product.model.ProductFilter
+import com.jdmobile.inflightsalesapp.ui.screens.product.model.ProductUi
+import com.jdmobile.inflightsalesapp.ui.screens.product.model.toUi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 class ProductViewModel(
-    private val screenActions: ProductScreenActions
+    private val screenActions: ProductScreenActions,
+    private val productRepository: ProductRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProductUiState())
     val uiState: StateFlow<ProductUiState> = _uiState.asStateFlow()
-
-    private val mockProductUis = listOf(
-        ProductUi(
-            id = "1",
-            name = "Chicken Sandwich",
-            unit = "2 unit",
-            priceUSD = 7.99,
-            priceEUR = 7.35,
-            priceGBP = 6.32,
-            imageUrl = "https://www.carniceriademadrid.es/wp-content/uploads/2022/09/smash-burger-que-es.jpg",
-            category = ProductFilter.FOOD
-        ),
-        ProductUi(
-            id = "2",
-            name = "Vegetarian Wrap",
-            unit = "1 unit",
-            priceUSD = 6.49,
-            priceEUR = 5.97,
-            priceGBP = 5.13,
-            imageUrl = "",
-            category = ProductFilter.FOOD
-        ),
-        ProductUi(
-            id = "3",
-            name = "Fruit Salad",
-            unit = "1 unit",
-            priceUSD = 4.99,
-            priceEUR = 4.59,
-            priceGBP = 3.95,
-            imageUrl = "",
-            category = ProductFilter.FOOD
-        ),
-        ProductUi(
-            id = "4",
-            name = "Cheese & Crackers",
-            unit = "1 unit",
-            priceUSD = 5.50,
-            priceEUR = 5.06,
-            priceGBP = 4.35,
-            imageUrl = "",
-            category = ProductFilter.FOOD
-        ),
-        ProductUi(
-            id = "5",
-            name = "Sparkling Water",
-            unit = "6 unit",
-            priceUSD = 3.99,
-            priceEUR = 3.67,
-            priceGBP = 3.16,
-            imageUrl = "",
-            category = ProductFilter.BEVERAGES
-        ),
-        ProductUi(
-            id = "6",
-            name = "Coffee",
-            unit = "0 unit",
-            priceUSD = 2.50,
-            priceEUR = 2.30,
-            priceGBP = 1.98,
-            imageUrl = "",
-            category = ProductFilter.BEVERAGES
-        ),
-        ProductUi(
-            id = "7",
-            name = "Sparkling Water",
-            unit = "6 unit",
-            priceUSD = 3.99,
-            priceEUR = 3.67,
-            priceGBP = 3.16,
-            imageUrl = "",
-            category = ProductFilter.BEVERAGES
-        ),
-        ProductUi(
-            id = "8",
-            name = "Coffee",
-            unit = "0 unit",
-            priceUSD = 2.50,
-            priceEUR = 2.30,
-            priceGBP = 1.98,
-            imageUrl = "",
-            category = ProductFilter.BEVERAGES
-        )
-    )
-
-    private var allProducts = mockProductUis
 
     init {
         loadProducts()
     }
 
     private fun loadProducts() {
-        _uiState.update {
-            it.copy(
-                isLoading = false,
-                products = allProducts
-            )
+        viewModelScope.launch {
+            productRepository.getProducts().map { products ->
+                val uiProducts = products.map { it.toUi() }
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        allProducts = uiProducts,
+                        products = uiProducts
+                    )
+                }
+            }.mapLeft {
+                _uiState.update {
+                    it.copy(isLoading = false, isThereError = true)
+                }
+            }
         }
     }
 
     fun onFilterSelected(filter: ProductFilter) {
         val filtered = when (filter) {
-            ProductFilter.ALL -> allProducts
-            else -> allProducts.filter { it.category == filter }
+            ProductFilter.ALL -> uiState.value.allProducts
+            else -> uiState.value.allProducts.filter { it.category == filter }
         }
 
         _uiState.update {
@@ -143,14 +78,15 @@ class ProductViewModel(
         }
     }
 
-    fun onAddProduct(productId: String) {
+    fun onAddProduct(productId: ProductId) {
         _uiState.update { state ->
             val updatedProducts = state.products.map { product ->
                 if (product.id == productId) product.copy(quantity = product.quantity + 1)
                 else product
             }
 
-            val total = calculateTotal(updatedProducts, state.selectedCurrency, state.selectedCustomerType)
+            val total =
+                calculateTotal(updatedProducts, state.selectedCurrency, state.selectedCustomerType)
             val itemCount = calculateItemCount(updatedProducts)
 
             state.copy(
@@ -161,7 +97,7 @@ class ProductViewModel(
         }
     }
 
-    fun onRemoveProduct(productId: String) {
+    fun onRemoveProduct(productId: ProductId) {
         _uiState.update { state ->
             val updatedProducts = state.products.map { product ->
                 if (product.id == productId && product.quantity > 0) {
@@ -169,7 +105,8 @@ class ProductViewModel(
                 } else product
             }
 
-            val total = calculateTotal(updatedProducts, state.selectedCurrency, state.selectedCustomerType)
+            val total =
+                calculateTotal(updatedProducts, state.selectedCurrency, state.selectedCustomerType)
             val itemCount = calculateItemCount(updatedProducts)
 
             state.copy(
@@ -205,6 +142,8 @@ class ProductViewModel(
 
 data class ProductUiState(
     val isLoading: Boolean = true,
+    val isThereError: Boolean = false,
+    val allProducts: List<ProductUi> = emptyList(),
     val products: List<ProductUi> = emptyList(),
     val selectedFilter: ProductFilter = ProductFilter.ALL,
     val selectedCurrency: Currency = Currency.USD,

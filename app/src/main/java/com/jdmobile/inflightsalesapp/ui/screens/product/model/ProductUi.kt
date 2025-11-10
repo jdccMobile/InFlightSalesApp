@@ -1,9 +1,12 @@
-package com.jdmobile.inflightsalesapp.ui.screens.product
+package com.jdmobile.inflightsalesapp.ui.screens.product.model
+
+import com.jdmobile.inflightsalesapp.domain.model.Product
+import com.jdmobile.inflightsalesapp.domain.model.ProductId
 
 data class ProductUi(
-    val id: String,
+    val id: ProductId,
     val name: String,
-    val unit: String,
+    val unit: Int,
     val priceUSD: Double,
     val priceEUR: Double,
     val priceGBP: Double,
@@ -25,14 +28,13 @@ data class ProductUi(
     }
 }
 
-enum class ProductFilter {
-    ALL,
-    FOOD,
-    BEVERAGES
-}
-
-enum class Currency(val symbol: String, val label: String) {
-    USD("$", "USD"),
-    EUR("€", "EUR"),
-    GBP("£", "GBP")
-}
+fun Product.toUi() = ProductUi(
+    id = id,
+    name = name,
+    unit = unit,
+    priceUSD = priceUSD,
+    priceEUR = priceEUR,
+    priceGBP = priceGBP,
+    imageUrl = imageUrl,
+    category = category
+)

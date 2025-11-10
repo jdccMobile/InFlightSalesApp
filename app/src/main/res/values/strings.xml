@@ -17,4 +17,5 @@
     <string name="customer_type_happy_hour">Happy Hour</string>
     <string name="customer_type_business_invitation">Business Invitation</string>
     <string name="customer_type_tourist_invitation">Tourist Invitation</string>
+    <string name="units">%1$d units</string>
 </resources>

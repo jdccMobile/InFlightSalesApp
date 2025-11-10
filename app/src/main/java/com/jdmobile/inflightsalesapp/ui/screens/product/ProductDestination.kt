@@ -50,6 +50,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -59,7 +60,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.jdmobile.inflightsalesapp.R
+import com.jdmobile.inflightsalesapp.domain.model.ProductId
+import com.jdmobile.inflightsalesapp.ui.components.CenteredCircularProgressIndicator
+import com.jdmobile.inflightsalesapp.ui.components.CenteredErrorMessage
+import com.jdmobile.inflightsalesapp.ui.screens.product.model.Currency
+import com.jdmobile.inflightsalesapp.ui.screens.product.model.CustomerType
+import com.jdmobile.inflightsalesapp.ui.screens.product.model.ProductFilter
+import com.jdmobile.inflightsalesapp.ui.screens.product.model.ProductUi
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -103,8 +112,8 @@ fun ProductContent(
     onFilterSelected: (ProductFilter) -> Unit,
     onCurrencySelected: (Currency) -> Unit,
     onCustomerTypeSelected: (CustomerType) -> Unit,
-    onAddProduct: (String) -> Unit,
-    onRemoveProduct: (String) -> Unit,
+    onAddProduct: (ProductId) -> Unit,
+    onRemoveProduct: (ProductId) -> Unit,
     onPayClicked: () -> Unit
 ) {
     Scaffold(
@@ -127,18 +136,24 @@ fun ProductContent(
                 )
             }
         }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 16.dp)
-        ) {
-            Filters(uiState, onFilterSelected, onCurrencySelected)
+    ) { innerPadding ->
+        when {
+            uiState.isLoading -> CenteredCircularProgressIndicator()
+            uiState.isThereError -> CenteredErrorMessage()
+            else -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                        .padding(horizontal = 16.dp)
+                ) {
+                    Filters(uiState, onFilterSelected, onCurrencySelected)
 
-            Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
-            ProductGrid(uiState, onAddProduct, onRemoveProduct)
+                    ProductGrid(uiState, onAddProduct, onRemoveProduct)
+                }
+            }
         }
     }
 }
@@ -150,28 +165,25 @@ private fun Filters(
     onCurrencySelected: (Currency) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Row(
+    Column(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        ProductFilterDropdownButton(
+        ProductFilterDropdown(
             selectedFilter = uiState.selectedFilter,
             onFilterSelected = onFilterSelected,
-            modifier = Modifier.weight(1f)
         )
 
         CurrencySelectorDropdown(
             selectedCurrency = uiState.selectedCurrency,
             onCurrencySelected = onCurrencySelected,
-            modifier = Modifier.weight(1f)
         )
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProductFilterDropdownButton(
+fun ProductFilterDropdown(
     selectedFilter: ProductFilter,
     onFilterSelected: (ProductFilter) -> Unit,
     modifier: Modifier = Modifier
@@ -187,12 +199,11 @@ fun ProductFilterDropdownButton(
     ExposedDropdownMenuBox(
         expanded = expanded,
         onExpandedChange = { expanded = it },
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier
     ) {
         Button(
             onClick = { },
             modifier = Modifier
-                .fillMaxWidth()
                 .menuAnchor(MenuAnchorType.PrimaryNotEditable),
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color(0xFFE0E0E0)
@@ -251,12 +262,11 @@ fun CurrencySelectorDropdown(
     ExposedDropdownMenuBox(
         expanded = expanded,
         onExpandedChange = { expanded = it },
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier
     ) {
         Button(
             onClick = { },
             modifier = Modifier
-                .fillMaxWidth()
                 .menuAnchor(MenuAnchorType.PrimaryNotEditable),
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color(0xFFE0E0E0)
@@ -303,8 +313,8 @@ fun CurrencySelectorDropdown(
 @Composable
 private fun ProductGrid(
     uiState: ProductUiState,
-    onAddProduct: (String) -> Unit,
-    onRemoveProduct: (String) -> Unit,
+    onAddProduct: (ProductId) -> Unit,
+    onRemoveProduct: (ProductId) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyVerticalGrid(
@@ -367,7 +377,10 @@ private fun ProductCard(
 @Composable
 private fun ProductCardImage(imageUrl: String, modifier: Modifier = Modifier) {
     AsyncImage(
-        model = imageUrl,
+        model = ImageRequest.Builder(LocalContext.current)
+            .data(imageUrl)
+            .crossfade(true)
+            .build(),
         placeholder = painterResource(R.drawable.ic_no_image),
         error = painterResource(R.drawable.ic_no_image),
         contentDescription = stringResource(R.string.product_image),
@@ -391,7 +404,7 @@ private fun ProductCardInfo(
         )
 
         Text(
-            text = productUi.unit,
+            text = stringResource(R.string.units, productUi.unit),
             color = Color.White.copy(alpha = 0.9f),
             fontSize = 10.sp,
             maxLines = 1,

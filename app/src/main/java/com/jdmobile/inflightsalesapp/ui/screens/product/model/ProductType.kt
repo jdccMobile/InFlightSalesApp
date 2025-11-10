@@ -1,4 +1,4 @@
-package com.jdmobile.inflightsalesapp.ui.screens.product
+package com.jdmobile.inflightsalesapp.ui.screens.product.model
 
 enum class CustomerType(val discount: Double) {
     RETAIL( 1.0),

@@ -69,5 +69,9 @@ dependencies {
     implementation(libs.material.icons.extended)
     // Coil
     implementation(libs.coil.compose)
-
+    // Retrofit
+    implementation(libs.retrofit)
+    implementation(libs.converter.gson)
+    // Arrow
+    implementation(libs.arrow.core)
 }
