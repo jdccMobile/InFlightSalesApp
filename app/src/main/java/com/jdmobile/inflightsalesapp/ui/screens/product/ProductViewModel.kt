@@ -1,20 +1,27 @@
 package com.jdmobile.inflightsalesapp.ui.screens.product
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
-import com.jdmobile.inflightsalesapp.data.repository.ProductRepository
+import androidx.lifecycle.viewModelScope
 import com.jdmobile.inflightsalesapp.domain.model.ProductId
+import com.jdmobile.inflightsalesapp.domain.usecase.GetProductsUseCase
+import com.jdmobile.inflightsalesapp.domain.usecase.SyncProductsUseCase
 import com.jdmobile.inflightsalesapp.ui.screens.product.model.Currency
 import com.jdmobile.inflightsalesapp.ui.screens.product.model.CustomerType
 import com.jdmobile.inflightsalesapp.ui.screens.product.model.ProductFilter
 import com.jdmobile.inflightsalesapp.ui.screens.product.model.ProductUi
+import com.jdmobile.inflightsalesapp.ui.screens.product.model.toUi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 class ProductViewModel(
     private val screenActions: ProductScreenActions,
-    private val productRepository: ProductRepository
+    private val getProductsUseCase: GetProductsUseCase,
+    private val syncProductsUseCase: SyncProductsUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProductUiState())
@@ -22,10 +29,42 @@ class ProductViewModel(
 
     init {
         loadProducts()
+        syncProducts()
     }
 
     private fun loadProducts() {
-        // TODO add usecase
+        viewModelScope.launch {
+            getProductsUseCase()
+                .catch {
+                    _uiState.update {
+                        it.copy(isLoading = false, isThereError = true)
+                    }
+                }
+                .collect { products ->
+                    val uiProducts = products.map { it.toUi() }
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            allProducts = uiProducts,
+                            products = uiProducts
+                        )
+                    }
+                }
+        }
+    }
+
+    private fun syncProducts() {
+        viewModelScope.launch {
+            syncProductsUseCase()
+                .fold(
+                    ifLeft = { error ->
+                        Log.e("ProductViewModel", "Error syncing products")
+                    },
+                    ifRight = {
+                        Log.d("ProductViewModel", "Products synced successfully")
+                    }
+                )
+        }
     }
 
     fun onFilterSelected(filter: ProductFilter) {
