@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
@@ -147,11 +148,13 @@ fun ProductContent(
                         .padding(innerPadding)
                         .padding(horizontal = 16.dp)
                 ) {
-                    Filters(uiState, onFilterSelected, onCurrencySelected)
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    ProductGrid(uiState, onAddProduct, onRemoveProduct)
+                    ProductGrid(
+                        uiState,
+                        onFilterSelected,
+                        onCurrencySelected,
+                        onAddProduct,
+                        onRemoveProduct
+                    )
                 }
             }
         }
@@ -313,6 +316,8 @@ fun CurrencySelectorDropdown(
 @Composable
 private fun ProductGrid(
     uiState: ProductUiState,
+    onFilterSelected: (ProductFilter) -> Unit,
+    onCurrencySelected: (Currency) -> Unit,
     onAddProduct: (ProductId) -> Unit,
     onRemoveProduct: (ProductId) -> Unit,
     modifier: Modifier = Modifier
@@ -324,6 +329,14 @@ private fun ProductGrid(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = modifier
     ) {
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            Filters(
+                uiState = uiState,
+                onFilterSelected = onFilterSelected,
+                onCurrencySelected = onCurrencySelected
+            )
+        }
+
         items(uiState.products) { product ->
             ProductCard(
                 productUi = product,
