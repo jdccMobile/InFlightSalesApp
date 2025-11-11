@@ -4,8 +4,9 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.jdmobile.inflightsalesapp.ui.screens.payment.PaymentDestination
+import androidx.navigation.toRoute
 import com.jdmobile.inflightsalesapp.ui.screens.product.ProductDestination
+import com.jdmobile.inflightsalesapp.ui.screens.receipt.ReceiptDestination
 
 @Composable
 fun NavHost() {
@@ -17,10 +18,26 @@ fun NavHost() {
         composable<Route.Product> {
             ProductDestination(
                 onNavBack = { navController.popBackStack() },
+                onNavToReceipt = { selectedProducts, currency, customerType ->
+                    navController.navigate(
+                        Route.Receipt(
+                            selectedProducts = selectedProducts,
+                            currency = currency,
+                            customerType = customerType,
+                        )
+                    )
+                },
             )
         }
-        composable<Route.Payment> {
-            PaymentDestination()
+
+        composable<Route.Receipt> { backStackEntry ->
+            val receiptParams = backStackEntry.toRoute<Route.Receipt>()
+            ReceiptDestination(
+                onNavBack = { navController.popBackStack() },
+                selectedProducts = receiptParams.selectedProducts,
+                currency = receiptParams.currency,
+                customerType = receiptParams.customerType,
+            )
         }
     }
 }

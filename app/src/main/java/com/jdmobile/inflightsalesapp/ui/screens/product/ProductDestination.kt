@@ -76,9 +76,11 @@ import org.koin.core.parameter.parametersOf
 @Composable
 fun ProductDestination(
     onNavBack: () -> Unit,
+    onNavToReceipt: (selectedProducts: String, currency: String, customerType: String) -> Unit,
 ) {
     val screenActions = ProductScreenActions(
         onNavBack = onNavBack,
+        onNavToReceipt = onNavToReceipt,
     )
 
     val viewModel: ProductViewModel = koinViewModel(

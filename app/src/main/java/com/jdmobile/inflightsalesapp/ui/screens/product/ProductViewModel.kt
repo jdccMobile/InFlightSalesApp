@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
 
 class ProductViewModel(
     private val screenActions: ProductScreenActions,
@@ -46,7 +47,7 @@ class ProductViewModel(
                         it.copy(
                             isLoading = false,
                             allProducts = uiProducts,
-                            products = uiProducts
+                            products = applyQuantitiesFromCart(uiProducts, it.selectedProducts)
                         )
                     }
                 }
@@ -76,7 +77,7 @@ class ProductViewModel(
         _uiState.update {
             it.copy(
                 selectedFilter = filter,
-                products = filtered
+                products = applyQuantitiesFromCart(filtered, it.selectedProducts)
             )
         }
     }
@@ -85,7 +86,12 @@ class ProductViewModel(
         _uiState.update { state ->
             state.copy(
                 selectedCurrency = currency,
-                cartTotal = calculateTotal(state.products, currency, state.selectedCustomerType)
+                cartTotal = calculateTotal(
+                    state.allProducts,
+                    state.selectedProducts,
+                    currency,
+                    state.selectedCustomerType
+                )
             )
         }
     }
@@ -94,23 +100,32 @@ class ProductViewModel(
         _uiState.update { state ->
             state.copy(
                 selectedCustomerType = customerType,
-                cartTotal = calculateTotal(state.products, state.selectedCurrency, customerType)
+                cartTotal = calculateTotal(
+                    state.allProducts,
+                    state.selectedProducts,
+                    state.selectedCurrency,
+                    customerType
+                )
             )
         }
     }
 
     fun onAddProduct(productId: ProductId) {
         _uiState.update { state ->
-            val updatedProducts = state.products.map { product ->
-                if (product.id == productId) product.copy(quantity = product.quantity + 1)
-                else product
-            }
+            val newCart = state.selectedProducts.toMutableMap()
+            newCart[productId] = (newCart[productId] ?: 0) + 1
 
-            val total =
-                calculateTotal(updatedProducts, state.selectedCurrency, state.selectedCustomerType)
-            val itemCount = calculateItemCount(updatedProducts)
+            val updatedProducts = applyQuantitiesFromCart(state.products, newCart)
+            val total = calculateTotal(
+                state.allProducts,
+                newCart,
+                state.selectedCurrency,
+                state.selectedCustomerType
+            )
+            val itemCount = calculateItemCount(newCart)
 
             state.copy(
+                selectedProducts = newCart,
                 products = updatedProducts,
                 cartTotal = total,
                 cartItemCount = itemCount
@@ -120,17 +135,28 @@ class ProductViewModel(
 
     fun onRemoveProduct(productId: ProductId) {
         _uiState.update { state ->
-            val updatedProducts = state.products.map { product ->
-                if (product.id == productId && product.quantity > 0) {
-                    product.copy(quantity = product.quantity - 1)
-                } else product
+            val newCart = state.selectedProducts.toMutableMap()
+            val currentQuantity = newCart[productId] ?: 0
+
+            if (currentQuantity > 0) {
+                if (currentQuantity == 1) {
+                    newCart.remove(productId)
+                } else {
+                    newCart[productId] = currentQuantity - 1
+                }
             }
 
-            val total =
-                calculateTotal(updatedProducts, state.selectedCurrency, state.selectedCustomerType)
-            val itemCount = calculateItemCount(updatedProducts)
+            val updatedProducts = applyQuantitiesFromCart(state.products, newCart)
+            val total = calculateTotal(
+                state.allProducts,
+                newCart,
+                state.selectedCurrency,
+                state.selectedCustomerType
+            )
+            val itemCount = calculateItemCount(newCart)
 
             state.copy(
+                selectedProducts = newCart,
                 products = updatedProducts,
                 cartTotal = total,
                 cartItemCount = itemCount
@@ -138,26 +164,45 @@ class ProductViewModel(
         }
     }
 
+    private fun applyQuantitiesFromCart(
+        products: List<ProductUi>,
+        cart: Map<ProductId, Int>
+    ): List<ProductUi> {
+        return products.map { product ->
+            product.copy(quantity = cart[product.id] ?: 0)
+        }
+    }
+
     private fun calculateTotal(
-        productUis: List<ProductUi>,
+        allProducts: List<ProductUi>,
+        cart: Map<ProductId, Int>,
         currency: Currency,
         customerType: CustomerType
     ): Double {
-        return productUis.sumOf { product ->
+        return cart.entries.sumOf { (productId, quantity) ->
+            val product = allProducts.find { it.id == productId } ?: return@sumOf 0.0
             val price = when (currency) {
                 Currency.USD -> product.priceUSD
                 Currency.EUR -> product.priceEUR
                 Currency.GBP -> product.priceGBP
             }
-            price * product.quantity * customerType.discount
+            price * quantity * customerType.discount
         }
     }
 
-    private fun calculateItemCount(productUis: List<ProductUi>): Int =
-        productUis.sumOf { it.quantity }
+    private fun calculateItemCount(cart: Map<ProductId, Int>): Int =
+        cart.values.sum()
 
     fun onPayClicked() {
-        // TODO: Implementar lógica de pago
+        val state = uiState.value
+
+        if (state.selectedProducts.isEmpty()) return
+
+        screenActions.onNavToReceipt(
+            Json.encodeToString(state.selectedProducts),
+            state.selectedCurrency.name,
+            state.selectedCustomerType.name,
+        )
     }
 }
 
@@ -169,10 +214,17 @@ data class ProductUiState(
     val selectedFilter: ProductFilter = ProductFilter.ALL,
     val selectedCurrency: Currency = Currency.USD,
     val selectedCustomerType: CustomerType = CustomerType.RETAIL,
+    val selectedProducts: Map<ProductId, Int> = emptyMap(),
     val cartTotal: Double = 0.0,
     val cartItemCount: Int = 0
 )
 
+data class CartItem(
+    val productId: ProductId,
+    val quantity: Int
+)
+
 data class ProductScreenActions(
-    val onNavBack: () -> Unit
+    val onNavBack: () -> Unit,
+    val onNavToReceipt: (selectedProducts: String, currency: String, customerType: String) -> Unit,
 )

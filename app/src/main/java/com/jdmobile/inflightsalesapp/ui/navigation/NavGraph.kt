@@ -7,5 +7,9 @@ sealed interface Route {
     data object Product : Route
 
     @Serializable
-    data object Payment : Route
+    data class Receipt(
+        val selectedProducts: String,
+        val currency: String,
+        val customerType: String,
+    ) : Route
 }

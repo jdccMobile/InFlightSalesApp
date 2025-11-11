@@ -11,11 +11,26 @@
     <string name="food">Food</string>
     <string name="beverages">Beverages</string>
     <string name="pay">PAY %1$s %2$s</string>
-    <!-- Customer types -->
     <string name="customer_type_retail">Retail</string>
     <string name="customer_type_crew">Crew</string>
     <string name="customer_type_happy_hour">Happy Hour</string>
     <string name="customer_type_business_invitation">Business Invitation</string>
     <string name="customer_type_tourist_invitation">Tourist Invitation</string>
     <string name="units">%1$d units</string>
+    <string name="receipt">Receipt</string>
+    <string name="selected_products">Selected Products</string>
+    <string name="total">TOTAL</string>
+    <string name="seat_selection">Seat Selection</string>
+    <string name="seat_number">Seat Number</string>
+    <string name="payment_method">Payment Method</string>
+    <string name="cash">Cash</string>
+    <string name="card">Card</string>
+    <string name="cash_amount">Cash Amount</string>
+    <string name="change">Change</string>
+    <string name="card_number">Card Number</string>
+    <string name="expiration_date">Expiration Date</string>
+    <string name="cvv">CVV</string>
+    <string name="cardholder_name">Cardholder Name</string>
+    <string name="process_payment">Process Payment</string>
+    <string name="back">Back</string>
 </resources>
