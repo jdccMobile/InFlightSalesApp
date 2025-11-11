@@ -31,7 +31,7 @@ class ProductViewModel(
 
     init {
         loadProducts()
-        syncProducts()
+        if(!ProductSyncState.isSynced) syncProducts()
     }
 
     private fun loadProducts() {
@@ -44,11 +44,16 @@ class ProductViewModel(
                 }
                 .collect { products ->
                     val uiProducts = products.map { it.toUi() }
+                    val discountedProducts = applyDiscountedPrices(
+                        uiProducts,
+                        _uiState.value.selectedCurrency,
+                        _uiState.value.selectedCustomerType
+                    )
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            allProducts = uiProducts,
-                            products = applyQuantitiesFromCart(uiProducts, it.selectedProducts)
+                            allProducts = discountedProducts,
+                            products = applyQuantitiesFromCart(discountedProducts, it.selectedProducts)
                         )
                     }
                 }
@@ -63,6 +68,7 @@ class ProductViewModel(
                         Log.e("ProductViewModel", "Error syncing products")
                     },
                     ifRight = {
+                        ProductSyncState.isSynced = true
                         Log.d("ProductViewModel", "Products synced successfully")
                     }
                 )
@@ -85,10 +91,17 @@ class ProductViewModel(
 
     fun onCurrencySelected(currency: Currency) {
         _uiState.update { state ->
+            val updatedProducts = applyDiscountedPrices(
+                state.allProducts,
+                currency,
+                state.selectedCustomerType
+            )
             state.copy(
                 selectedCurrency = currency,
+                allProducts = updatedProducts,
+                products = applyQuantitiesFromCart(updatedProducts, state.selectedProducts),
                 cartTotal = calculateTotal(
-                    state.allProducts,
+                    updatedProducts,
                     state.selectedProducts,
                     currency,
                     state.selectedCustomerType
@@ -99,10 +112,17 @@ class ProductViewModel(
 
     fun onCustomerTypeSelected(customerType: CustomerType) {
         _uiState.update { state ->
+            val updatedProducts = applyDiscountedPrices(
+                state.allProducts,
+                state.selectedCurrency,
+                customerType
+            )
             state.copy(
                 selectedCustomerType = customerType,
+                allProducts = updatedProducts,
+                products = applyQuantitiesFromCart(updatedProducts, state.selectedProducts),
                 cartTotal = calculateTotal(
-                    state.allProducts,
+                    updatedProducts,
                     state.selectedProducts,
                     state.selectedCurrency,
                     customerType
@@ -117,7 +137,7 @@ class ProductViewModel(
             val index = existing.indexOfFirst { it.productId == productId }
 
             val product = state.allProducts.find { it.id == productId } ?: return@update state
-            val price = getProductPrice(product, state.selectedCurrency, state.selectedCustomerType)
+            val price = product.finalPrice
 
             if (index >= 0) {
                 val current = existing[index]
@@ -163,7 +183,7 @@ class ProductViewModel(
                 val current = existing[index]
                 if (current.quantity > 1) {
                     val product = state.allProducts.find { it.id == productId } ?: return@update state
-                    val price = getProductPrice(product, state.selectedCurrency, state.selectedCustomerType)
+                    val price = product.finalPrice
                     val newQuantity = current.quantity - 1
 
                     existing[index] = current.copy(
@@ -239,6 +259,22 @@ class ProductViewModel(
             state.selectedCurrency.name,
         )
     }
+
+    private fun applyDiscountedPrices(
+        products: List<ProductUi>,
+        currency: Currency,
+        customerType: CustomerType
+    ): List<ProductUi> {
+        return products.map { product ->
+            val basePrice = when (currency) {
+                Currency.USD -> product.priceUSD
+                Currency.EUR -> product.priceEUR
+                Currency.GBP -> product.priceGBP
+            }
+            val discountedPrice = basePrice * customerType.discount
+            product.copy(finalPrice = discountedPrice)
+        }
+    }
 }
 
 data class ProductUiState(
@@ -265,3 +301,7 @@ data class ProductScreenActions(
     val onNavBack: () -> Unit,
     val onNavToReceipt: (selectedProducts: String, currency: String) -> Unit,
 )
+
+object ProductSyncState {
+    var isSynced = false
+}

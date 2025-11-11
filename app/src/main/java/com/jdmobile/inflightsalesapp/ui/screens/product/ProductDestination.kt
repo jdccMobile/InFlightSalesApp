@@ -499,8 +499,17 @@ private fun PriceTag(
     }
 }
 
+fun ProductUi.getFormattedPrice(selectedCurrency: Currency): String {
+    val symbol = when (selectedCurrency) {
+        Currency.USD -> "$"
+        Currency.EUR -> "€"
+        Currency.GBP -> "£"
+    }
+    return "$symbol${"%.2f".format(finalPrice)}"
+}
+
 @Composable
-fun CircleIconButton(
+private fun CircleIconButton(
     icon: ImageVector,
     contentDescription: String?,
     backgroundColor: Color,

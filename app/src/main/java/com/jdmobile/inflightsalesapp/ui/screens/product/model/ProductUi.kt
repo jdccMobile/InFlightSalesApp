@@ -10,25 +10,13 @@ data class ProductUi(
     val priceUSD: Double,
     val priceEUR: Double,
     val priceGBP: Double,
+    val finalPrice: Double,
     val imageUrl: String,
     val unitsSelected: Int = 0,
     val category: ProductFilter = ProductFilter.ALL
-) {
-    fun getPriceForCurrency(currency: Currency): Double {
-        return when (currency) {
-            Currency.USD -> priceUSD
-            Currency.EUR -> priceEUR
-            Currency.GBP -> priceGBP
-        }
-    }
+)
 
-    fun getFormattedPrice(currency: Currency): String {
-        val price = getPriceForCurrency(currency)
-        return String.format("%.2f %s", price, currency.symbol)
-    }
-}
-
-fun Product.toUi() = ProductUi(
+fun Product.toUi(finalPrice: Double = 0.0) = ProductUi(
     id = id,
     name = name,
     stock = stock,
@@ -36,5 +24,6 @@ fun Product.toUi() = ProductUi(
     priceEUR = priceEUR,
     priceGBP = priceGBP,
     imageUrl = imageUrl,
-    category = category
+    category = category,
+    finalPrice = finalPrice
 )

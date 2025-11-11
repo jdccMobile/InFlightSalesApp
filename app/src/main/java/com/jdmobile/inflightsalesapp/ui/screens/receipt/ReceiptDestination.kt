@@ -642,14 +642,8 @@ private fun ReceiptProductItem(
                             overflow = TextOverflow.Ellipsis
                         )
 
-                        val subtotal = when (currency) {
-                            Currency.USD -> product.priceUSD
-                            Currency.EUR -> product.priceEUR
-                            Currency.GBP -> product.priceGBP
-                        } * product.unitsSelected
-
                         Text(
-                            text = String.format("%.2f %s", subtotal, currency.symbol),
+                            text = String.format("%.2f %s", product.finalPrice, currency.symbol),
                             fontSize = 13.sp,
                             color = Color.Gray,
                             fontWeight = FontWeight.SemiBold

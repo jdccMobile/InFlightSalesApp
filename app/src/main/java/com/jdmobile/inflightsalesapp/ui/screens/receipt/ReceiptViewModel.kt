@@ -38,13 +38,13 @@ class ReceiptViewModel(
                 val allProducts = domainProducts.map { it.toUi() }
 
                 val selectedProducts = receiptInitialData.selectedProducts.mapNotNull { selected ->
-                    allProducts.find { it.id == selected.productId }?.copy(unitsSelected = selected.quantity)
+                    allProducts.find { it.id == selected.productId }?.copy(
+                        unitsSelected = selected.quantity,
+                        finalPrice = selected.totalPrice.toDouble()
+                    )
                 }
 
-                val total = calculateTotal(
-                    products = selectedProducts,
-                    currency = receiptInitialData.currency,
-                )
+                val total = selectedProducts.sumOf { it.finalPrice }
 
                 _uiState.update {
                     it.copy(
@@ -64,10 +64,7 @@ class ReceiptViewModel(
     fun onRemoveProduct(productId: ProductId) {
         _uiState.update { state ->
             val updatedProducts = state.products.filter { it.id != productId }
-            val total = calculateTotal(
-                products = updatedProducts,
-                currency = receiptInitialData.currency,
-            )
+            val total = calculateTotal(products = updatedProducts,)
 
             state.copy(
                 products = updatedProducts,
@@ -188,16 +185,8 @@ class ReceiptViewModel(
 
     private fun calculateTotal(
         products: List<ProductUi>,
-        currency: Currency,
     ): Double {
-        return products.sumOf { product ->
-            val price = when (currency) {
-                Currency.USD -> product.priceUSD
-                Currency.EUR -> product.priceEUR
-                Currency.GBP -> product.priceGBP
-            }
-            price * product.unitsSelected
-        }
+        return products.sumOf { product -> product.finalPrice }
     }
 }
 
