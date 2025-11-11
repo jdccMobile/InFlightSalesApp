@@ -22,7 +22,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -143,7 +142,7 @@ fun ReceiptContent(
             )
         }
     ) { innerPadding ->
-        if (!uiState.isLoading) {
+        if(!uiState.isLoading) {
             if (uiState.products.isEmpty()) {
                 Column(
                     modifier = Modifier
@@ -160,7 +159,7 @@ fun ReceiptContent(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = stringResource(R.string.no_products_added_yet),
+                        text = "No products added yet",
                         color = Color.Gray.copy(alpha = 0.8f),
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Medium,
@@ -203,7 +202,7 @@ fun ReceiptContent(
                     ) {
                         CircularProgressIndicator()
                         Text(
-                            text = stringResource(R.string.processing_payment),
+                            text = "Procesando pago...",
                             fontWeight = FontWeight.Medium,
                             fontSize = 16.sp
                         )
@@ -271,7 +270,7 @@ fun CashPaymentDialog(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    text = stringResource(R.string.cash_payment),
+                    text = "Pago en efectivo",
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp
                 )
@@ -288,16 +287,12 @@ fun CashPaymentDialog(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text = stringResource(R.string.total_to_pay),
+                            text = "Total a pagar:",
                             fontWeight = FontWeight.Medium,
                             fontSize = 16.sp
                         )
                         Text(
-                            text = String.format(
-                                stringResource(R.string.amount_with_currency),
-                                total,
-                                currency.symbol
-                            ),
+                            text = String.format("%.2f %s", total, currency.symbol),
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp,
                             color = Color(0xFF2196F3)
@@ -308,8 +303,8 @@ fun CashPaymentDialog(
                 OutlinedTextField(
                     value = cashAmount,
                     onValueChange = onCashAmountChanged,
-                    label = { Text(stringResource(R.string.cash_received)) },
-                    placeholder = { Text(String.format(stringResource(R.string.amount), total)) },
+                    label = { Text("Efectivo recibido") },
+                    placeholder = { Text(String.format("%.2f", total)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
@@ -333,16 +328,12 @@ fun CashPaymentDialog(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = stringResource(R.string.change),
+                                text = "Cambio:",
                                 fontWeight = FontWeight.Medium,
                                 color = Color(0xFF4CAF50)
                             )
                             Text(
-                                text = String.format(
-                                    stringResource(R.string.amount_with_currency),
-                                    change,
-                                    currency.symbol
-                                ),
+                                text = String.format("%.2f %s", change, currency.symbol),
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 18.sp,
                                 color = Color(0xFF4CAF50)
@@ -353,7 +344,7 @@ fun CashPaymentDialog(
 
                 if (showError && !hasEnoughMoney) {
                     Text(
-                        text = stringResource(R.string.the_cash_received_must_be_greater_than_or_equal_to_the_total),
+                        text = "El efectivo recibido debe ser mayor o igual al total",
                         color = Color.Red,
                         fontSize = 14.sp
                     )
@@ -367,7 +358,7 @@ fun CashPaymentDialog(
                         onClick = onDismiss,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text(stringResource(R.string.cancel))
+                        Text("Cancelar")
                     }
 
                     Button(
@@ -377,7 +368,7 @@ fun CashPaymentDialog(
                         ),
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text(stringResource(R.string.pay))
+                        Text("Pagar")
                     }
                 }
             }
@@ -411,7 +402,7 @@ fun CardPaymentDialog(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    text = stringResource(R.string.payment_by_card),
+                    text = "Pago con tarjeta",
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp
                 )
@@ -419,7 +410,7 @@ fun CardPaymentDialog(
                 OutlinedTextField(
                     value = cardNumber,
                     onValueChange = onCardNumberChanged,
-                    label = { Text(stringResource(R.string.card_number)) },
+                    label = { Text("Número de tarjeta") },
                     placeholder = { Text("1234 5678 9012 3456") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth(),
@@ -436,7 +427,7 @@ fun CardPaymentDialog(
                     OutlinedTextField(
                         value = expirationDate,
                         onValueChange = onExpirationDateChanged,
-                        label = { Text(stringResource(R.string.expiration_date)) },
+                        label = { Text("Vencimiento") },
                         placeholder = { Text("MM/YY") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.weight(1f),
@@ -446,7 +437,7 @@ fun CardPaymentDialog(
                     OutlinedTextField(
                         value = cvv,
                         onValueChange = onCvvChanged,
-                        label = { Text(stringResource(R.string.cvv)) },
+                        label = { Text("CVV") },
                         placeholder = { Text("123") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
                         modifier = Modifier.weight(1f),
@@ -457,7 +448,7 @@ fun CardPaymentDialog(
                 OutlinedTextField(
                     value = cardholderName,
                     onValueChange = onCardholderNameChanged,
-                    label = { Text(stringResource(R.string.cardholder_name)) },
+                    label = { Text("Titular de la tarjeta") },
                     placeholder = { Text("JOHN DOE") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                     modifier = Modifier.fillMaxWidth(),
@@ -469,7 +460,7 @@ fun CardPaymentDialog(
 
                 if (showError) {
                     Text(
-                        text = stringResource(R.string.validation_error),
+                        text = "Por favor completa todos los campos",
                         color = Color.Red,
                         fontSize = 14.sp
                     )
@@ -483,7 +474,7 @@ fun CardPaymentDialog(
                         onClick = onDismiss,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text(stringResource(R.string.cancel))
+                        Text("Cancelar")
                     }
 
                     Button(
@@ -493,7 +484,7 @@ fun CardPaymentDialog(
                         ),
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text(stringResource(R.string.pay))
+                        Text("Pagar")
                     }
                 }
             }
@@ -523,14 +514,14 @@ fun SuccessDialog(onDismiss: () -> Unit) {
                 )
 
                 Text(
-                    text = stringResource(R.string.payment_successfully_completed),
+                    text = "¡Pago realizado correctamente!",
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp,
                     textAlign = TextAlign.Center
                 )
 
                 Text(
-                    text = stringResource(R.string.thank_you_for_your_purchase),
+                    text = "Gracias por su compra",
                     fontSize = 16.sp,
                     color = Color.Gray,
                     textAlign = TextAlign.Center
@@ -545,7 +536,7 @@ fun SuccessDialog(onDismiss: () -> Unit) {
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = stringResource(R.string.back_to_products),
+                        text = "Volver a productos",
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp,
                         modifier = Modifier.padding(vertical = 4.dp)
@@ -583,11 +574,11 @@ private fun ReceiptProductItem(
             ) {
                 Icon(
                     imageVector = Icons.Default.Delete,
-                    contentDescription = stringResource(R.string.delete),
+                    contentDescription = "Delete",
                     tint = Color.White
                 )
                 Text(
-                    text = stringResource(R.string.delete),
+                    text = "Eliminar",
                     color = Color.White,
                     fontWeight = FontWeight.Bold
                 )
@@ -655,14 +646,10 @@ private fun ReceiptProductItem(
                             Currency.USD -> product.priceUSD
                             Currency.EUR -> product.priceEUR
                             Currency.GBP -> product.priceGBP
-                        } * product.quantity
+                        } * product.unitsSelected
 
                         Text(
-                            text = String.format(
-                                stringResource(R.string.amount_with_currency),
-                                subtotal,
-                                currency.symbol
-                            ),
+                            text = String.format("%.2f %s", subtotal, currency.symbol),
                             fontSize = 13.sp,
                             color = Color.Gray,
                             fontWeight = FontWeight.SemiBold
@@ -671,7 +658,7 @@ private fun ReceiptProductItem(
                 }
 
                 Text(
-                    text = "${product.quantity}",
+                    text = "${product.unitsSelected}",
                     fontWeight = FontWeight.Bold,
                 )
             }
@@ -722,7 +709,7 @@ fun PaymentFooter(
                     modifier = Modifier.padding(vertical = 8.dp)
                 ) {
                     Icon(imageVector = Icons.Default.Payments, contentDescription = null)
-                    Text(text = stringResource(R.string.cash), color = Color.White, fontWeight = FontWeight.Bold)
+                    Text(text = "Efectivo", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             }
 
@@ -738,7 +725,7 @@ fun PaymentFooter(
                     modifier = Modifier.padding(vertical = 8.dp)
                 ) {
                     Icon(imageVector = Icons.Default.CreditCard, contentDescription = null)
-                    Text(text = stringResource(R.string.card), color = Color.White, fontWeight = FontWeight.Bold)
+                    Text(text = "Tarjeta", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -748,7 +735,7 @@ fun PaymentFooter(
 @Composable
 private fun TotalPrice(total: Double, currency: Currency) {
     Column {
-        Text(text = stringResource(R.string.total).uppercase(), color = Color.Gray, fontSize = 12.sp)
+        Text(text = "TOTAL", color = Color.Gray, fontSize = 12.sp)
         Spacer(Modifier.height(8.dp))
         Text(
             text = String.format("%.2f %s", total, currency.symbol),
@@ -768,7 +755,7 @@ fun SeatSelector(
     val seats = listOf("A1", "A2", "A3", "B1", "B2", "B3", "C1", "C2", "C3")
 
     Column {
-        Text(text = stringResource(R.string.seat).uppercase(), color = Color.Gray, fontSize = 12.sp)
+        Text(text = "ASIENTO", color = Color.Gray, fontSize = 12.sp)
         ExposedDropdownMenuBox(
             expanded = expanded,
             onExpandedChange = { expanded = it }
@@ -780,7 +767,7 @@ fun SeatSelector(
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text(
-                    text = selectedSeat.ifBlank { stringResource(R.string.select) },
+                    text = selectedSeat.ifBlank { "Seleccionar" },
                     color = Color.Black
                 )
                 Icon(

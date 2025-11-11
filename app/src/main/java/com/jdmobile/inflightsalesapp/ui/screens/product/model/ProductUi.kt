@@ -6,12 +6,12 @@ import com.jdmobile.inflightsalesapp.domain.model.ProductId
 data class ProductUi(
     val id: ProductId,
     val name: String,
-    val unit: Int,
+    val stock: Int,
     val priceUSD: Double,
     val priceEUR: Double,
     val priceGBP: Double,
     val imageUrl: String,
-    val quantity: Int = 0,
+    val unitsSelected: Int = 0,
     val category: ProductFilter = ProductFilter.ALL
 ) {
     fun getPriceForCurrency(currency: Currency): Double {
@@ -31,7 +31,7 @@ data class ProductUi(
 fun Product.toUi() = ProductUi(
     id = id,
     name = name,
-    unit = unit,
+    stock = stock,
     priceUSD = priceUSD,
     priceEUR = priceEUR,
     priceGBP = priceGBP,

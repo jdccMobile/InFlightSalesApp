@@ -48,6 +48,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -131,13 +133,11 @@ fun ProductContent(
             )
         },
         bottomBar = {
-            if (uiState.cartItemCount > 0) {
-                PayFooter(
-                    uiState = uiState,
-                    onCustomerTypeSelected = onCustomerTypeSelected,
-                    onPayClicked = onPayClicked
-                )
-            }
+            PayFooter(
+                uiState = uiState,
+                onCustomerTypeSelected = onCustomerTypeSelected,
+                onPayClicked = onPayClicked
+            )
         }
     ) { innerPadding ->
         when {
@@ -367,7 +367,7 @@ private fun ProductCard(
         Box(
             modifier = Modifier.fillMaxSize()
         ) {
-            ProductCardImage(productUi.imageUrl)
+            ProductCardImage(imageUrl = productUi.imageUrl, isThereStock = productUi.stock > 0)
 
             ProductCardInfo(
                 productUi = productUi,
@@ -390,7 +390,18 @@ private fun ProductCard(
 }
 
 @Composable
-private fun ProductCardImage(imageUrl: String, modifier: Modifier = Modifier) {
+private fun ProductCardImage(
+    imageUrl: String,
+    isThereStock: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val colorMatrix = if (isThereStock) {
+        ColorMatrix()
+    } else {
+        ColorMatrix().apply { setToSaturation(0f) }
+    }
+
+
     AsyncImage(
         model = ImageRequest.Builder(LocalContext.current)
             .data(imageUrl)
@@ -400,6 +411,7 @@ private fun ProductCardImage(imageUrl: String, modifier: Modifier = Modifier) {
         error = painterResource(R.drawable.ic_no_image),
         contentDescription = stringResource(R.string.product_image),
         contentScale = ContentScale.Crop,
+        colorFilter = ColorFilter.colorMatrix(colorMatrix),
         modifier = modifier.fillMaxSize(),
     )
 }
@@ -418,13 +430,14 @@ private fun ProductCardInfo(
             overflow = TextOverflow.Ellipsis,
         )
 
-        Text(
-            text = stringResource(R.string.units, productUi.unit),
-            color = Color.White.copy(alpha = 0.9f),
-            fontSize = 10.sp,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+        if (productUi.unitsSelected > 0) {
+            Text(
+                text = stringResource(R.string.units, productUi.unitsSelected),
+                color = Color.White,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 
@@ -445,7 +458,8 @@ private fun ProductCardButtons(
             icon = Icons.Default.Remove,
             contentDescription = stringResource(R.string.remove),
             backgroundColor = Color(0xFFE53935),
-            onClick = onRemoveProduct
+            onClick = onRemoveProduct,
+            isEnabled = productUi.unitsSelected > 0
         )
 
         Spacer(modifier = Modifier.width(8.dp))
@@ -454,7 +468,8 @@ private fun ProductCardButtons(
             icon = Icons.Default.Add,
             contentDescription = stringResource(R.string.add),
             backgroundColor = Color(0xFF2196F3),
-            onClick = onAddProduct
+            onClick = onAddProduct,
+            isEnabled = (productUi.stock - productUi.unitsSelected) > 0
         )
 
         Spacer(Modifier.weight(1f))
@@ -491,16 +506,18 @@ fun CircleIconButton(
     backgroundColor: Color,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    isEnabled: Boolean = true,
     iconTint: Color = Color.White,
     size: Dp = 32.dp,
     iconPadding: Dp = 8.dp
 ) {
     IconButton(
         onClick = onClick,
+        enabled = isEnabled,
         modifier = modifier
             .clip(CircleShape)
             .size(size)
-            .background(backgroundColor)
+            .background(if (isEnabled) backgroundColor else Color.Gray)
     ) {
         Icon(
             imageVector = icon,
@@ -532,6 +549,7 @@ private fun PayFooter(
             customerType = uiState.selectedCustomerType,
             onCustomerTypeSelected = onCustomerTypeSelected,
             onPayClicked = onPayClicked,
+            isPayButtonEnabled = uiState.selectedProducts.isNotEmpty(),
         )
 
         Spacer(Modifier.height(8.dp))
@@ -554,11 +572,11 @@ private fun buildConversionText(uiState: ProductUiState): String {
     uiState.products.forEach { product ->
         val discount = uiState.selectedCustomerType.discount
         totals[Currency.USD] =
-            totals[Currency.USD]!! + (product.priceUSD * product.quantity * discount)
+            totals[Currency.USD]!! + (product.priceUSD * product.unitsSelected * discount)
         totals[Currency.EUR] =
-            totals[Currency.EUR]!! + (product.priceEUR * product.quantity * discount)
+            totals[Currency.EUR]!! + (product.priceEUR * product.unitsSelected * discount)
         totals[Currency.GBP] =
-            totals[Currency.GBP]!! + (product.priceGBP * product.quantity * discount)
+            totals[Currency.GBP]!! + (product.priceGBP * product.unitsSelected * discount)
     }
 
     val otherCurrencies = Currency.entries.filter { it != uiState.selectedCurrency }
@@ -577,6 +595,7 @@ private fun BottomCheckoutBar(
     total: Double,
     currency: Currency,
     customerType: CustomerType,
+    isPayButtonEnabled: Boolean,
     onCustomerTypeSelected: (CustomerType) -> Unit,
     onPayClicked: () -> Unit,
     modifier: Modifier = Modifier
@@ -590,6 +609,7 @@ private fun BottomCheckoutBar(
             onPayClicked = onPayClicked,
             total = total,
             currency = currency,
+            isPayButtonEnabled = isPayButtonEnabled,
             modifier = Modifier.weight(0.7f)
         )
 
@@ -606,10 +626,12 @@ private fun PayButton(
     onPayClicked: () -> Unit,
     total: Double,
     currency: Currency,
+    isPayButtonEnabled: Boolean,
     modifier: Modifier = Modifier
 ) {
     Button(
         onClick = onPayClicked,
+        enabled = isPayButtonEnabled,
         colors = ButtonDefaults.buttonColors(
             containerColor = Color(0xFF2196F3)
         ),

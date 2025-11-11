@@ -199,7 +199,7 @@ class ProductViewModel(
     ): List<ProductUi> {
         return products.map { product ->
             val selected = selectedProducts.find { it.productId == product.id }
-            product.copy(quantity = selected?.quantity ?: 0)
+            product.copy(unitsSelected = selected?.quantity ?: 0)
         }
     }
 

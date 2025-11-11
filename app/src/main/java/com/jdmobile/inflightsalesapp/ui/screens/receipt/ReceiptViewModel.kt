@@ -38,7 +38,7 @@ class ReceiptViewModel(
                 val allProducts = domainProducts.map { it.toUi() }
 
                 val selectedProducts = receiptInitialData.selectedProducts.mapNotNull { selected ->
-                    allProducts.find { it.id == selected.productId }?.copy(quantity = selected.quantity)
+                    allProducts.find { it.id == selected.productId }?.copy(unitsSelected = selected.quantity)
                 }
 
                 val total = calculateTotal(
@@ -196,7 +196,7 @@ class ReceiptViewModel(
                 Currency.EUR -> product.priceEUR
                 Currency.GBP -> product.priceGBP
             }
-            price * product.quantity
+            price * product.unitsSelected
         }
     }
 }

@@ -34,7 +34,7 @@
     <string name="process_payment">Process Payment</string>
     <string name="back">Back</string>
     <string name="no_products_selected">No products selected</string>
-    <string name="delete">Eliminar</string>
+    <string name="delete">Remove</string>
     <string name="validation_error">Please complete all required fields</string>
     <string name="no_products_added_yet">No products added yet</string>
     <string name="processing_payment">Processing payment...</string>
