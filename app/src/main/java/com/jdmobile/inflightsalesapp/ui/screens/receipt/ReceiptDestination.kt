@@ -1,20 +1,9 @@
 package com.jdmobile.inflightsalesapp.ui.screens.receipt
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -22,22 +11,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,17 +25,20 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.jdmobile.inflightsalesapp.R
 import com.jdmobile.inflightsalesapp.domain.model.ProductId
+import com.jdmobile.inflightsalesapp.ui.screens.product.SelectedProductsUi
 import com.jdmobile.inflightsalesapp.ui.screens.product.model.Currency
-import com.jdmobile.inflightsalesapp.ui.screens.product.model.CustomerType
 import com.jdmobile.inflightsalesapp.ui.screens.product.model.ProductUi
 import kotlinx.serialization.json.Json
 import org.koin.compose.viewmodel.koinViewModel
@@ -69,23 +48,21 @@ import kotlin.math.roundToInt
 @Composable
 fun ReceiptDestination(
     onNavBack: () -> Unit,
+    onNavToProducts: () -> Unit,
     selectedProducts: String,
     currency: String,
-    customerType: String,
 ) {
-
-    val selectedProducts = Json.decodeFromString<Map<ProductId, Int>>(selectedProducts)
+    val selectedProducts = Json.decodeFromString<List<SelectedProductsUi>>(selectedProducts)
     val currencyEnum = Currency.valueOf(currency)
-    val customerTypeEnum = CustomerType.valueOf(customerType)
 
     val initialData = ReceiptInitialData(
         selectedProducts = selectedProducts,
         currency = currencyEnum,
-        customerType = customerTypeEnum,
     )
 
     val screenActions = ReceiptScreenActions(
         onNavBack = onNavBack,
+        onNavToProducts = onNavToProducts,
     )
 
     val viewModel: ReceiptViewModel = koinViewModel(
@@ -98,23 +75,26 @@ fun ReceiptDestination(
 }
 
 @Composable
-fun ReceiptScreen(
-    viewModel: ReceiptViewModel,
-) {
+fun ReceiptScreen(viewModel: ReceiptViewModel) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     ReceiptContent(
         uiState = uiState,
         onNavBack = viewModel::onNavBack,
         onRemoveProduct = viewModel::onRemoveProduct,
-        onPaymentMethodSelected = viewModel::onPaymentMethodSelected,
         onSeatNumberChanged = viewModel::onSeatNumberChanged,
+        onCashClicked = viewModel::onCashPaymentClicked,
+        onCardClicked = viewModel::onCardPaymentClicked,
+        onDismissCashDialog = viewModel::onDismissCashDialog,
+        onCashAmountChanged = viewModel::onCashAmountChanged,
+        onProcessCashPayment = viewModel::onProcessCashPayment,
+        onDismissCardDialog = viewModel::onDismissCardDialog,
         onCardNumberChanged = viewModel::onCardNumberChanged,
         onExpirationDateChanged = viewModel::onExpirationDateChanged,
         onCvvChanged = viewModel::onCvvChanged,
         onCardholderNameChanged = viewModel::onCardholderNameChanged,
-        onCashAmountChanged = viewModel::onCashAmountChanged,
-        onProcessPayment = viewModel::onProcessPayment
+        onProcessCardPayment = viewModel::onProcessCardPayment,
+        onDismissSuccessDialog = viewModel::onDismissSuccessDialog
     )
 }
 
@@ -124,156 +104,512 @@ fun ReceiptContent(
     uiState: ReceiptUiState,
     onNavBack: () -> Unit,
     onRemoveProduct: (ProductId) -> Unit,
-    onPaymentMethodSelected: (PaymentMethod) -> Unit,
     onSeatNumberChanged: (String) -> Unit,
+    onCashClicked: () -> Unit,
+    onCardClicked: () -> Unit,
+    onDismissCashDialog: () -> Unit,
+    onCashAmountChanged: (String) -> Unit,
+    onProcessCashPayment: () -> Unit,
+    onDismissCardDialog: () -> Unit,
     onCardNumberChanged: (String) -> Unit,
     onExpirationDateChanged: (String) -> Unit,
     onCvvChanged: (String) -> Unit,
     onCardholderNameChanged: (String) -> Unit,
-    onCashAmountChanged: (String) -> Unit,
-    onProcessPayment: () -> Unit
+    onProcessCardPayment: () -> Unit,
+    onDismissSuccessDialog: () -> Unit
 ) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        stringResource(R.string.receipt),
-                        fontWeight = FontWeight.Bold
-                    )
-                },
+                title = { Text("Receipt", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.back)
+                            contentDescription = "Back"
                         )
                     }
                 }
             )
+        },
+        bottomBar = {
+            PaymentFooter(
+                seat = uiState.seatNumber,
+                total = uiState.total,
+                currency = uiState.selectedCurrency,
+                onSeatSelected = onSeatNumberChanged,
+                onCashClicked = onCashClicked,
+                onCardClicked = onCardClicked
+            )
         }
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                item {
+        if (!uiState.isLoading) {
+            if (uiState.products.isEmpty()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(32.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Inventory2,
+                        contentDescription = null,
+                        tint = Color.Gray.copy(alpha = 0.6f),
+                        modifier = Modifier.size(80.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = stringResource(R.string.selected_products),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp,
-                        modifier = Modifier.padding(vertical = 8.dp)
+                        text = stringResource(R.string.no_products_added_yet),
+                        color = Color.Gray.copy(alpha = 0.8f),
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        textAlign = TextAlign.Center
                     )
                 }
+            } else {
+                LazyColumn(
+                    contentPadding = innerPadding,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp)
+                ) {
+                    items(uiState.products, key = { it.id.value }) { product ->
+                        ReceiptProductItem(
+                            product = product,
+                            currency = uiState.selectedCurrency,
+                            onRemoveItem = { onRemoveProduct(product.id) }
+                        )
+                    }
+                }
+            }
+        }
+        if (uiState.isProcessingPayment) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        CircularProgressIndicator()
+                        Text(
+                            text = stringResource(R.string.processing_payment),
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 16.sp
+                        )
+                    }
+                }
+            }
+        }
+    }
 
-                items(uiState.products, key = { it.id.value }) { product ->
-                    SwipeableProductItem(
-                        product = product,
-                        currency = uiState.selectedCurrency,
-                        onRemove = { onRemoveProduct(product.id) }
+    if (uiState.showCashDialog) {
+        CashPaymentDialog(
+            total = uiState.total,
+            currency = uiState.selectedCurrency,
+            cashAmount = uiState.cashAmount,
+            showError = uiState.showValidationError,
+            onCashAmountChanged = onCashAmountChanged,
+            onDismiss = onDismissCashDialog,
+            onConfirm = onProcessCashPayment
+        )
+    }
+
+    if (uiState.showCardDialog) {
+        CardPaymentDialog(
+            cardNumber = uiState.cardNumber,
+            expirationDate = uiState.expirationDate,
+            cvv = uiState.cvv,
+            cardholderName = uiState.cardholderName,
+            showError = uiState.showValidationError,
+            onCardNumberChanged = onCardNumberChanged,
+            onExpirationDateChanged = onExpirationDateChanged,
+            onCvvChanged = onCvvChanged,
+            onCardholderNameChanged = onCardholderNameChanged,
+            onDismiss = onDismissCardDialog,
+            onConfirm = onProcessCardPayment
+        )
+    }
+
+    if (uiState.showSuccessDialog) {
+        SuccessDialog(onDismiss = onDismissSuccessDialog)
+    }
+}
+
+@Composable
+fun CashPaymentDialog(
+    total: Double,
+    currency: Currency,
+    cashAmount: String,
+    showError: Boolean,
+    onCashAmountChanged: (String) -> Unit,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    val change = (cashAmount.toDoubleOrNull() ?: 0.0) - total
+    val hasEnoughMoney = change >= 0
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White)
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(24.dp)
+                    .fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.cash_payment),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp
+                )
+
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFFF5F5F5)
                     )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = stringResource(R.string.total_to_pay),
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 16.sp
+                        )
+                        Text(
+                            text = String.format(
+                                stringResource(R.string.amount_with_currency),
+                                total,
+                                currency.symbol
+                            ),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                            color = Color(0xFF2196F3)
+                        )
+                    }
                 }
 
-                item {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    TotalSection(
-                        total = uiState.total,
-                        currency = uiState.selectedCurrency
-                    )
-                }
+                OutlinedTextField(
+                    value = cashAmount,
+                    onValueChange = onCashAmountChanged,
+                    label = { Text(stringResource(R.string.cash_received)) },
+                    placeholder = { Text(String.format(stringResource(R.string.amount), total)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    leadingIcon = {
+                        Icon(Icons.Default.Payments, contentDescription = null)
+                    },
+                    suffix = { Text(currency.symbol) },
+                    isError = showError && !hasEnoughMoney
+                )
 
-                item {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    SeatSelectionDropdown(
-                        seatNumber = uiState.seatNumber,
-                        onSeatNumberChanged = onSeatNumberChanged
-                    )
-                }
-
-                item {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    PaymentMethodSelector(
-                        selectedMethod = uiState.selectedPaymentMethod,
-                        onMethodSelected = onPaymentMethodSelected
-                    )
-                }
-
-                item {
-                    when (uiState.selectedPaymentMethod) {
-                        PaymentMethod.CASH -> {
-                            CashPaymentSection(
-                                total = uiState.total,
-                                currency = uiState.selectedCurrency,
-                                cashAmount = uiState.cashAmount,
-                                change = uiState.change,
-                                onCashAmountChanged = onCashAmountChanged
+                if (cashAmount.isNotBlank() && hasEnoughMoney && change > 0) {
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color(0xFFE8F5E9)
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = stringResource(R.string.change),
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFF4CAF50)
                             )
-                        }
-                        PaymentMethod.CARD -> {
-                            CardPaymentSection(
-                                cardNumber = uiState.cardNumber,
-                                expirationDate = uiState.expirationDate,
-                                cvv = uiState.cvv,
-                                cardholderName = uiState.cardholderName,
-                                onCardNumberChanged = onCardNumberChanged,
-                                onExpirationDateChanged = onExpirationDateChanged,
-                                onCvvChanged = onCvvChanged,
-                                onCardholderNameChanged = onCardholderNameChanged
+                            Text(
+                                text = String.format(
+                                    stringResource(R.string.amount_with_currency),
+                                    change,
+                                    currency.symbol
+                                ),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp,
+                                color = Color(0xFF4CAF50)
                             )
                         }
                     }
                 }
 
-                item {
-                    Spacer(modifier = Modifier.height(100.dp))
+                if (showError && !hasEnoughMoney) {
+                    Text(
+                        text = stringResource(R.string.the_cash_received_must_be_greater_than_or_equal_to_the_total),
+                        color = Color.Red,
+                        fontSize = 14.sp
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(stringResource(R.string.cancel))
+                    }
+
+                    Button(
+                        onClick = onConfirm,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF4CAF50)
+                        ),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(stringResource(R.string.pay))
+                    }
                 }
             }
-
-            ProcessPaymentButton(
-                onProcessPayment = onProcessPayment,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-                    .navigationBarsPadding()
-            )
         }
     }
 }
 
 @Composable
-private fun SwipeableProductItem(
+fun CardPaymentDialog(
+    cardNumber: String,
+    expirationDate: String,
+    cvv: String,
+    cardholderName: String,
+    showError: Boolean,
+    onCardNumberChanged: (String) -> Unit,
+    onExpirationDateChanged: (String) -> Unit,
+    onCvvChanged: (String) -> Unit,
+    onCardholderNameChanged: (String) -> Unit,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White)
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(24.dp)
+                    .fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.payment_by_card),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp
+                )
+
+                OutlinedTextField(
+                    value = cardNumber,
+                    onValueChange = onCardNumberChanged,
+                    label = { Text(stringResource(R.string.card_number)) },
+                    placeholder = { Text("1234 5678 9012 3456") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    leadingIcon = {
+                        Icon(Icons.Default.CreditCard, contentDescription = null)
+                    }
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedTextField(
+                        value = expirationDate,
+                        onValueChange = onExpirationDateChanged,
+                        label = { Text(stringResource(R.string.expiration_date)) },
+                        placeholder = { Text("MM/YY") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
+                    )
+
+                    OutlinedTextField(
+                        value = cvv,
+                        onValueChange = onCvvChanged,
+                        label = { Text(stringResource(R.string.cvv)) },
+                        placeholder = { Text("123") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
+                    )
+                }
+
+                OutlinedTextField(
+                    value = cardholderName,
+                    onValueChange = onCardholderNameChanged,
+                    label = { Text(stringResource(R.string.cardholder_name)) },
+                    placeholder = { Text("JOHN DOE") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    leadingIcon = {
+                        Icon(Icons.Default.Person, contentDescription = null)
+                    }
+                )
+
+                if (showError) {
+                    Text(
+                        text = stringResource(R.string.validation_error),
+                        color = Color.Red,
+                        fontSize = 14.sp
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(stringResource(R.string.cancel))
+                    }
+
+                    Button(
+                        onClick = onConfirm,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF2196F3)
+                        ),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(stringResource(R.string.pay))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SuccessDialog(onDismiss: () -> Unit) {
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White)
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(32.dp)
+                    .fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    tint = Color(0xFF4CAF50),
+                    modifier = Modifier.size(80.dp)
+                )
+
+                Text(
+                    text = stringResource(R.string.payment_successfully_completed),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp,
+                    textAlign = TextAlign.Center
+                )
+
+                Text(
+                    text = stringResource(R.string.thank_you_for_your_purchase),
+                    fontSize = 16.sp,
+                    color = Color.Gray,
+                    textAlign = TextAlign.Center
+                )
+
+                Button(
+                    onClick = onDismiss,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF2196F3)
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = stringResource(R.string.back_to_products),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        modifier = Modifier.padding(vertical = 4.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReceiptProductItem(
     product: ProductUi,
     currency: Currency,
-    onRemove: () -> Unit
+    onRemoveItem: () -> Unit,
+    cardHeight: Dp = 80.dp
 ) {
     var offsetX by remember { mutableFloatStateOf(0f) }
-    val swipeThreshold = -200f
+    val swipeThreshold = -150f
+    val animatedOffsetX by animateFloatAsState(targetValue = offsetX, label = "")
 
-    Box(
-        modifier = Modifier.fillMaxWidth()
-    ) {
+    Box(modifier = Modifier.fillMaxWidth()) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(cardHeight)
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color(0xFFE53935)),
+            contentAlignment = Alignment.CenterEnd
+        ) {
+            Row(
+                modifier = Modifier.padding(end = 20.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = stringResource(R.string.delete),
+                    tint = Color.White
+                )
+                Text(
+                    text = stringResource(R.string.delete),
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .offset { IntOffset(offsetX.roundToInt(), 0) }
-                .pointerInput(Unit) {
+                .height(cardHeight)
+                .offset { IntOffset(animatedOffsetX.roundToInt(), 0) }
+                .pointerInput(product.id) {
                     detectHorizontalDragGestures(
                         onDragEnd = {
                             if (offsetX < swipeThreshold) {
-                                onRemove()
+                                onRemoveItem()
                             }
                             offsetX = 0f
                         },
                         onHorizontalDrag = { _, dragAmount ->
-                            val newOffset = offsetX + dragAmount
-                            offsetX = newOffset.coerceAtMost(0f)
+                            val new = offsetX + dragAmount
+                            offsetX = new.coerceAtMost(0f)
                         }
                     )
                 },
@@ -282,15 +618,15 @@ private fun SwipeableProductItem(
         ) {
             Row(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                    .fillMaxSize()
+                    .padding(horizontal = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(
-                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier = Modifier.weight(1f)
                 ) {
                     AsyncImage(
                         model = ImageRequest.Builder(LocalContext.current)
@@ -302,11 +638,11 @@ private fun SwipeableProductItem(
                         contentDescription = product.name,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
-                            .size(50.dp)
+                            .size(56.dp)
                             .clip(CircleShape)
                     )
 
-                    Column {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
                             text = product.name,
                             fontWeight = FontWeight.Bold,
@@ -314,201 +650,95 @@ private fun SwipeableProductItem(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
+
+                        val subtotal = when (currency) {
+                            Currency.USD -> product.priceUSD
+                            Currency.EUR -> product.priceEUR
+                            Currency.GBP -> product.priceGBP
+                        } * product.quantity
+
                         Text(
-                            text = product.getFormattedPrice(currency),
-                            fontSize = 12.sp,
-                            color = Color.Gray
+                            text = String.format(
+                                stringResource(R.string.amount_with_currency),
+                                subtotal,
+                                currency.symbol
+                            ),
+                            fontSize = 13.sp,
+                            color = Color.Gray,
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
                 }
 
-                Box(
-                    modifier = Modifier
-                        .background(Color(0xFFFFC107), CircleShape)
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
-                ) {
-                    Text(
-                        text = product.quantity.toString(),
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Black
-                    )
-                }
+                Text(
+                    text = "${product.quantity}",
+                    fontWeight = FontWeight.Bold,
+                )
             }
         }
     }
 }
 
 @Composable
-private fun TotalSection(
-    total: Double,
-    currency: Currency
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFFF5F5F5)
-        ),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = stringResource(R.string.total),
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp
-            )
-            Text(
-                text = String.format("%.2f %s", total, currency.symbol),
-                fontWeight = FontWeight.Bold,
-                fontSize = 20.sp,
-                color = Color(0xFF2196F3)
-            )
-        }
-    }
-}
-
-@Composable
-private fun SeatSelectionDropdown(
-    seatNumber: String,
-    onSeatNumberChanged: (String) -> Unit
-) {
-    Column {
-        Text(
-            text = stringResource(R.string.seat_selection),
-            fontWeight = FontWeight.Bold,
-            fontSize = 16.sp,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-        OutlinedTextField(
-            value = seatNumber,
-            onValueChange = onSeatNumberChanged,
-            label = { Text(stringResource(R.string.seat_number)) },
-            placeholder = { Text("12A") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
-    }
-}
-
-@Composable
-private fun PaymentMethodSelector(
-    selectedMethod: PaymentMethod,
-    onMethodSelected: (PaymentMethod) -> Unit
-) {
-    Column {
-        Text(
-            text = stringResource(R.string.payment_method),
-            fontWeight = FontWeight.Bold,
-            fontSize = 16.sp,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            PaymentMethodButton(
-                text = stringResource(R.string.cash),
-                icon = R.drawable.ic_no_image,
-                isSelected = selectedMethod == PaymentMethod.CASH,
-                onClick = { onMethodSelected(PaymentMethod.CASH) },
-                modifier = Modifier.weight(1f)
-            )
-
-            PaymentMethodButton(
-                text = stringResource(R.string.card),
-                icon = R.drawable.ic_no_image,
-                isSelected = selectedMethod == PaymentMethod.CARD,
-                onClick = { onMethodSelected(PaymentMethod.CARD) },
-                modifier = Modifier.weight(1f)
-            )
-        }
-    }
-}
-
-@Composable
-private fun PaymentMethodButton(
-    text: String,
-    icon: Int,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Button(
-        onClick = onClick,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = if (isSelected) Color(0xFF424242) else Color(0xFFE0E0E0),
-            contentColor = if (isSelected) Color.White else Color.Black
-        ),
-        shape = RoundedCornerShape(12.dp),
-        contentPadding = PaddingValues(vertical = 16.dp),
-        modifier = modifier
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Icon(
-                painter = painterResource(icon),
-                contentDescription = text,
-                modifier = Modifier.size(32.dp)
-            )
-            Text(text = text, fontWeight = FontWeight.Medium)
-        }
-    }
-}
-
-@Composable
-private fun CashPaymentSection(
+fun PaymentFooter(
+    seat: String,
     total: Double,
     currency: Currency,
-    cashAmount: String,
-    change: Double,
-    onCashAmountChanged: (String) -> Unit
+    onSeatSelected: (String) -> Unit,
+    onCashClicked: () -> Unit,
+    onCardClicked: () -> Unit
 ) {
     Column(
-        modifier = Modifier.padding(vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .navigationBarsPadding(),
     ) {
-        OutlinedTextField(
-            value = cashAmount,
-            onValueChange = onCashAmountChanged,
-            label = { Text(stringResource(R.string.cash_amount)) },
-            placeholder = { Text(String.format("%.2f", total)) },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            suffix = { Text(currency.symbol) }
-        )
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top
+        ) {
+            SeatSelector(seat, onSeatSelected)
+            TotalPrice(total, currency)
+        }
 
-        if (change > 0) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFFE8F5E9)
-                ),
+        Spacer(Modifier.height(12.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Button(
+                onClick = onCashClicked,
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
+                modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.padding(vertical = 8.dp)
                 ) {
-                    Text(
-                        text = stringResource(R.string.change),
-                        fontWeight = FontWeight.Medium
-                    )
-                    Text(
-                        text = String.format("%.2f %s", change, currency.symbol),
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF4CAF50)
-                    )
+                    Icon(imageVector = Icons.Default.Payments, contentDescription = null)
+                    Text(text = stringResource(R.string.cash), color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            }
+
+            Button(
+                onClick = onCardClicked,
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Blue),
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.padding(vertical = 8.dp)
+                ) {
+                    Icon(imageVector = Icons.Default.CreditCard, contentDescription = null)
+                    Text(text = stringResource(R.string.card), color = Color.White, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -516,86 +746,64 @@ private fun CashPaymentSection(
 }
 
 @Composable
-private fun CardPaymentSection(
-    cardNumber: String,
-    expirationDate: String,
-    cvv: String,
-    cardholderName: String,
-    onCardNumberChanged: (String) -> Unit,
-    onExpirationDateChanged: (String) -> Unit,
-    onCvvChanged: (String) -> Unit,
-    onCardholderNameChanged: (String) -> Unit
-) {
-    Column(
-        modifier = Modifier.padding(vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        OutlinedTextField(
-            value = cardNumber,
-            onValueChange = onCardNumberChanged,
-            label = { Text(stringResource(R.string.card_number)) },
-            placeholder = { Text("1234 5678 9012 3456") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            OutlinedTextField(
-                value = expirationDate,
-                onValueChange = onExpirationDateChanged,
-                label = { Text(stringResource(R.string.expiration_date)) },
-                placeholder = { Text("MM/YY") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.weight(1f),
-                singleLine = true
-            )
-
-            OutlinedTextField(
-                value = cvv,
-                onValueChange = onCvvChanged,
-                label = { Text(stringResource(R.string.cvv)) },
-                placeholder = { Text("123") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-                modifier = Modifier.weight(1f),
-                singleLine = true
-            )
-        }
-
-        OutlinedTextField(
-            value = cardholderName,
-            onValueChange = onCardholderNameChanged,
-            label = { Text(stringResource(R.string.cardholder_name)) },
-            placeholder = { Text("JOHN DOE") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
+private fun TotalPrice(total: Double, currency: Currency) {
+    Column {
+        Text(text = stringResource(R.string.total).uppercase(), color = Color.Gray, fontSize = 12.sp)
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = String.format("%.2f %s", total, currency.symbol),
+            fontWeight = FontWeight.Bold,
+            fontSize = 20.sp
         )
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ProcessPaymentButton(
-    onProcessPayment: () -> Unit,
-    modifier: Modifier = Modifier
+fun SeatSelector(
+    selectedSeat: String,
+    onSeatSelected: (String) -> Unit
 ) {
-    Button(
-        onClick = onProcessPayment,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = Color(0xFF2196F3)
-        ),
-        shape = RoundedCornerShape(24.dp),
-        contentPadding = PaddingValues(vertical = 16.dp),
-        modifier = modifier
-    ) {
-        Text(
-            text = stringResource(R.string.process_payment),
-            fontWeight = FontWeight.Bold,
-            fontSize = 16.sp,
-            color = Color.White
-        )
+    var expanded by remember { mutableStateOf(false) }
+    val seats = listOf("A1", "A2", "A3", "B1", "B2", "B3", "C1", "C2", "C3")
+
+    Column {
+        Text(text = stringResource(R.string.seat).uppercase(), color = Color.Gray, fontSize = 12.sp)
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = it }
+        ) {
+            Button(
+                onClick = { },
+                modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE0E0E0)),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    text = selectedSeat.ifBlank { stringResource(R.string.select) },
+                    color = Color.Black
+                )
+                Icon(
+                    imageVector = Icons.Default.ArrowDropDown,
+                    contentDescription = null,
+                    tint = Color.Black
+                )
+            }
+
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                seats.forEach { seat ->
+                    DropdownMenuItem(
+                        text = { Text(seat) },
+                        onClick = {
+                            onSeatSelected(seat)
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
     }
 }

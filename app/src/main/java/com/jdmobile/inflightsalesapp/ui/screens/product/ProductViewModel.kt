@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
 class ProductViewModel(
@@ -58,7 +59,7 @@ class ProductViewModel(
         viewModelScope.launch {
             syncProductsUseCase()
                 .fold(
-                    ifLeft = { error ->
+                    ifLeft = {
                         Log.e("ProductViewModel", "Error syncing products")
                     },
                     ifRight = {
@@ -112,20 +113,40 @@ class ProductViewModel(
 
     fun onAddProduct(productId: ProductId) {
         _uiState.update { state ->
-            val newCart = state.selectedProducts.toMutableMap()
-            newCart[productId] = (newCart[productId] ?: 0) + 1
+            val existing = state.selectedProducts.toMutableList()
+            val index = existing.indexOfFirst { it.productId == productId }
 
-            val updatedProducts = applyQuantitiesFromCart(state.products, newCart)
+            val product = state.allProducts.find { it.id == productId } ?: return@update state
+            val price = getProductPrice(product, state.selectedCurrency, state.selectedCustomerType)
+
+            if (index >= 0) {
+                val current = existing[index]
+                val newQuantity = current.quantity + 1
+                existing[index] = current.copy(
+                    quantity = newQuantity,
+                    totalPrice = (price * newQuantity).toFloat()
+                )
+            } else {
+                existing.add(
+                    SelectedProductsUi(
+                        productId = productId,
+                        quantity = 1,
+                        totalPrice = price.toFloat()
+                    )
+                )
+            }
+
+            val updatedProducts = applyQuantitiesFromCart(state.products, existing)
             val total = calculateTotal(
                 state.allProducts,
-                newCart,
+                existing,
                 state.selectedCurrency,
                 state.selectedCustomerType
             )
-            val itemCount = calculateItemCount(newCart)
+            val itemCount = calculateItemCount(existing)
 
             state.copy(
-                selectedProducts = newCart,
+                selectedProducts = existing,
                 products = updatedProducts,
                 cartTotal = total,
                 cartItemCount = itemCount
@@ -135,28 +156,36 @@ class ProductViewModel(
 
     fun onRemoveProduct(productId: ProductId) {
         _uiState.update { state ->
-            val newCart = state.selectedProducts.toMutableMap()
-            val currentQuantity = newCart[productId] ?: 0
+            val existing = state.selectedProducts.toMutableList()
+            val index = existing.indexOfFirst { it.productId == productId }
 
-            if (currentQuantity > 0) {
-                if (currentQuantity == 1) {
-                    newCart.remove(productId)
+            if (index >= 0) {
+                val current = existing[index]
+                if (current.quantity > 1) {
+                    val product = state.allProducts.find { it.id == productId } ?: return@update state
+                    val price = getProductPrice(product, state.selectedCurrency, state.selectedCustomerType)
+                    val newQuantity = current.quantity - 1
+
+                    existing[index] = current.copy(
+                        quantity = newQuantity,
+                        totalPrice = (price * newQuantity).toFloat()
+                    )
                 } else {
-                    newCart[productId] = currentQuantity - 1
+                    existing.removeAt(index)
                 }
             }
 
-            val updatedProducts = applyQuantitiesFromCart(state.products, newCart)
+            val updatedProducts = applyQuantitiesFromCart(state.products, existing)
             val total = calculateTotal(
                 state.allProducts,
-                newCart,
+                existing,
                 state.selectedCurrency,
                 state.selectedCustomerType
             )
-            val itemCount = calculateItemCount(newCart)
+            val itemCount = calculateItemCount(existing)
 
             state.copy(
-                selectedProducts = newCart,
+                selectedProducts = existing,
                 products = updatedProducts,
                 cartTotal = total,
                 cartItemCount = itemCount
@@ -166,42 +195,48 @@ class ProductViewModel(
 
     private fun applyQuantitiesFromCart(
         products: List<ProductUi>,
-        cart: Map<ProductId, Int>
+        selectedProducts: List<SelectedProductsUi>
     ): List<ProductUi> {
         return products.map { product ->
-            product.copy(quantity = cart[product.id] ?: 0)
+            val selected = selectedProducts.find { it.productId == product.id }
+            product.copy(quantity = selected?.quantity ?: 0)
         }
     }
 
     private fun calculateTotal(
         allProducts: List<ProductUi>,
-        cart: Map<ProductId, Int>,
+        selectedProducts: List<SelectedProductsUi>,
         currency: Currency,
         customerType: CustomerType
     ): Double {
-        return cart.entries.sumOf { (productId, quantity) ->
-            val product = allProducts.find { it.id == productId } ?: return@sumOf 0.0
-            val price = when (currency) {
-                Currency.USD -> product.priceUSD
-                Currency.EUR -> product.priceEUR
-                Currency.GBP -> product.priceGBP
-            }
-            price * quantity * customerType.discount
+        return selectedProducts.sumOf { selected ->
+            val product = allProducts.find { it.id == selected.productId } ?: return@sumOf 0.0
+            getProductPrice(product, currency, customerType) * selected.quantity
         }
     }
 
-    private fun calculateItemCount(cart: Map<ProductId, Int>): Int =
-        cart.values.sum()
+    private fun getProductPrice(
+        product: ProductUi,
+        currency: Currency,
+        customerType: CustomerType
+    ): Double {
+        val basePrice = when (currency) {
+            Currency.USD -> product.priceUSD
+            Currency.EUR -> product.priceEUR
+            Currency.GBP -> product.priceGBP
+        }
+        return basePrice * customerType.discount
+    }
+
+    private fun calculateItemCount(selectedProducts: List<SelectedProductsUi>): Int =
+        selectedProducts.sumOf { it.quantity }
 
     fun onPayClicked() {
         val state = uiState.value
 
-        if (state.selectedProducts.isEmpty()) return
-
         screenActions.onNavToReceipt(
             Json.encodeToString(state.selectedProducts),
             state.selectedCurrency.name,
-            state.selectedCustomerType.name,
         )
     }
 }
@@ -214,17 +249,19 @@ data class ProductUiState(
     val selectedFilter: ProductFilter = ProductFilter.ALL,
     val selectedCurrency: Currency = Currency.USD,
     val selectedCustomerType: CustomerType = CustomerType.RETAIL,
-    val selectedProducts: Map<ProductId, Int> = emptyMap(),
+    val selectedProducts: List<SelectedProductsUi> = emptyList(),
     val cartTotal: Double = 0.0,
     val cartItemCount: Int = 0
 )
 
-data class CartItem(
+@Serializable
+data class SelectedProductsUi(
     val productId: ProductId,
-    val quantity: Int
+    val quantity: Int,
+    val totalPrice: Float,
 )
 
 data class ProductScreenActions(
     val onNavBack: () -> Unit,
-    val onNavToReceipt: (selectedProducts: String, currency: String, customerType: String) -> Unit,
+    val onNavToReceipt: (selectedProducts: String, currency: String) -> Unit,
 )

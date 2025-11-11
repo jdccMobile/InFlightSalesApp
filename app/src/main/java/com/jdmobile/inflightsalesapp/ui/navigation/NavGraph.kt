@@ -10,6 +10,5 @@ sealed interface Route {
     data class Receipt(
         val selectedProducts: String,
         val currency: String,
-        val customerType: String,
     ) : Route
 }

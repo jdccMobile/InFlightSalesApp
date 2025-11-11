@@ -76,7 +76,7 @@ import org.koin.core.parameter.parametersOf
 @Composable
 fun ProductDestination(
     onNavBack: () -> Unit,
-    onNavToReceipt: (selectedProducts: String, currency: String, customerType: String) -> Unit,
+    onNavToReceipt: (selectedProducts: String, currency: String) -> Unit,
 ) {
     val screenActions = ProductScreenActions(
         onNavBack = onNavBack,
@@ -132,7 +132,7 @@ fun ProductContent(
         },
         bottomBar = {
             if (uiState.cartItemCount > 0) {
-                PaySection(
+                PayFooter(
                     uiState = uiState,
                     onCustomerTypeSelected = onCustomerTypeSelected,
                     onPayClicked = onPayClicked
@@ -512,7 +512,7 @@ fun CircleIconButton(
 }
 
 @Composable
-private fun PaySection(
+private fun PayFooter(
     uiState: ProductUiState,
     onCustomerTypeSelected: (CustomerType) -> Unit,
     onPayClicked: () -> Unit,

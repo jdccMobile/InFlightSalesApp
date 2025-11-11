@@ -33,4 +33,22 @@
     <string name="cardholder_name">Cardholder Name</string>
     <string name="process_payment">Process Payment</string>
     <string name="back">Back</string>
+    <string name="no_products_selected">No products selected</string>
+    <string name="delete">Eliminar</string>
+    <string name="validation_error">Please complete all required fields</string>
+    <string name="no_products_added_yet">No products added yet</string>
+    <string name="processing_payment">Processing payment...</string>
+    <string name="cash_payment">Cash payment</string>
+    <string name="total_to_pay">Total to pay:</string>
+    <string name="cash_received">Cash received</string>
+    <string name="amount_with_currency">%.2f %s</string>
+    <string name="amount">%.2f</string>
+    <string name="the_cash_received_must_be_greater_than_or_equal_to_the_total">The cash received must be greater than or equal to the total.</string>
+    <string name="cancel">Cancel</string>
+    <string name="payment_by_card">Payment by card</string>
+    <string name="payment_successfully_completed">Payment successfully completed!</string>
+    <string name="thank_you_for_your_purchase">Thank you for your purchase</string>
+    <string name="back_to_products">Back to products</string>
+    <string name="seat">Seat</string>
+    <string name="select">Select</string>
 </resources>
