@@ -10,6 +10,7 @@ import com.jdmobile.inflightsalesapp.domain.model.Product
 import com.jdmobile.inflightsalesapp.domain.model.ProductId
 import com.jdmobile.inflightsalesapp.ui.screens.product.model.ProductFilter
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 class ProductRepository(
@@ -27,6 +28,20 @@ class ProductRepository(
             val productsResponse = remoteDataSource.getProducts().bind()
             val entities = productsResponse.map { it.toEntity() }
             localDataSource.insertProducts(entities).bind()
+        }
+    }
+
+    suspend fun updateProductStock(productId: ProductId, quantitySold: Int) {
+        val currentProduct = localDataSource.getAllProducts()
+            .first()
+            .find { it.id == productId.value }
+
+        if (currentProduct != null) {
+            val newStock = (currentProduct.unit - quantitySold).coerceAtLeast(0)
+            localDataSource.updateProductStock(
+                id = productId.value,
+                newStock = newStock
+            )
         }
     }
 }

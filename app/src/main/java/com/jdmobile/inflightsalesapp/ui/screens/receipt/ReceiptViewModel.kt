@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jdmobile.inflightsalesapp.domain.model.ProductId
 import com.jdmobile.inflightsalesapp.domain.usecase.GetProductsUseCase
+import com.jdmobile.inflightsalesapp.domain.usecase.UpdateProductStockUseCase
 import com.jdmobile.inflightsalesapp.ui.screens.product.SelectedProductsUi
 import com.jdmobile.inflightsalesapp.ui.screens.product.model.Currency
 import com.jdmobile.inflightsalesapp.ui.screens.product.model.ProductUi
@@ -18,7 +19,8 @@ import kotlinx.coroutines.launch
 class ReceiptViewModel(
     private val screenActions: ReceiptScreenActions,
     private val receiptInitialData: ReceiptInitialData,
-    private val getProductsUseCase: GetProductsUseCase
+    private val getProductsUseCase: GetProductsUseCase,
+    private val updateProductStockUseCase: UpdateProductStockUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
@@ -64,7 +66,7 @@ class ReceiptViewModel(
     fun onRemoveProduct(productId: ProductId) {
         _uiState.update { state ->
             val updatedProducts = state.products.filter { it.id != productId }
-            val total = calculateTotal(products = updatedProducts,)
+            val total = calculateTotal(products = updatedProducts)
 
             state.copy(
                 products = updatedProducts,
@@ -108,6 +110,8 @@ class ReceiptViewModel(
                 )
             }
 
+            delay(2000)  // Simulate payment processing
+            updateStock()
 
             _uiState.update {
                 it.copy(
@@ -167,7 +171,8 @@ class ReceiptViewModel(
                 )
             }
 
-            delay(2000)
+            delay(2000) // Simulate payment processing
+            updateStock()
 
             _uiState.update {
                 it.copy(
@@ -178,14 +183,25 @@ class ReceiptViewModel(
         }
     }
 
+    private fun updateStock() {
+
+        viewModelScope.launch {
+        val products = _uiState.value.products
+            products.map { product ->
+                updateProductStockUseCase(
+                    productId = product.id,
+                    quantitySold = product.unitsSelected
+                )
+            }
+        }
+    }
+
     fun onDismissSuccessDialog() {
         _uiState.update { it.copy(showSuccessDialog = false) }
         screenActions.onNavToProducts()
     }
 
-    private fun calculateTotal(
-        products: List<ProductUi>,
-    ): Double {
+    private fun calculateTotal(products: List<ProductUi>): Double {
         return products.sumOf { product -> product.finalPrice }
     }
 }
