@@ -1,0 +1,104 @@
+{
+  "products": [
+    {
+      "id": 1,
+      "name": "Chicken Sandwich",
+      "unit": 2,
+      "priceUSD": 7.99,
+      "priceEUR": 7.35,
+      "priceGBP": 6.32,
+      "imageUrl": "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&h=600&q=50",
+      "category": 1
+    },
+    {
+      "id": 2,
+      "name": "Vegetarian Wrap",
+      "unit": 1,
+      "priceUSD": 6.49,
+      "priceEUR": 5.97,
+      "priceGBP": 5.13,
+      "imageUrl": "https://images.unsplash.com/photo-1626700051175-6818013e1d4f?w=800&h=600&q=50",
+      "category": 1
+    },
+    {
+      "id": 3,
+      "name": "Fruit Salad",
+      "unit": 1,
+      "priceUSD": 4.99,
+      "priceEUR": 4.59,
+      "priceGBP": 3.95,
+      "imageUrl": "https://images.unsplash.com/photo-1564093497595-593b96d80180?w=800&h=600&q=50",
+      "category": 1
+    },
+    {
+      "id": 4,
+      "name": "Cheese & Crackers",
+      "unit": 1,
+      "priceUSD": 5.50,
+      "priceEUR": 5.06,
+      "priceGBP": 4.35,
+      "imageUrl": "https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?w=800&h=600&q=50",
+      "category": 1
+    },
+    {
+      "id": 5,
+      "name": "Sparkling Water",
+      "unit": 6,
+      "priceUSD": 3.99,
+      "priceEUR": 3.67,
+      "priceGBP": 3.16,
+      "imageUrl": "https://images.unsplash.com/photo-1523362628745-0c100150b504?w=800&h=600&q=50",
+      "category": 2
+    },
+    {
+      "id": 6,
+      "name": "Coffee",
+      "unit": 0,
+      "priceUSD": 2.50,
+      "priceEUR": 2.30,
+      "priceGBP": 1.98,
+      "imageUrl": "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=800&h=600&q=50",
+      "category": 2
+    },
+    {
+      "id": 7,
+      "name": "Orange Juice",
+      "unit": 4,
+      "priceUSD": 4.25,
+      "priceEUR": 3.91,
+      "priceGBP": 3.36,
+      "imageUrl": "https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=800&h=600&q=50",
+      "category": 2
+    },
+    {
+      "id": 8,
+      "name": "Green Tea",
+      "unit": 8,
+      "priceUSD": 3.50,
+      "priceEUR": 3.22,
+      "priceGBP": 2.77,
+      "imageUrl": "https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9?w=800&h=600&q=50",
+      "category": 2
+    },
+    {
+      "id": 9,
+      "name": "Caesar Salad",
+      "unit": 3,
+      "priceUSD": 8.99,
+      "priceEUR": 8.27,
+      "priceGBP": 7.11,
+      "imageUrl": "https://images.unsplash.com/photo-1546793665-c74683f339c1?w=800&h=600&q=50",
+      "category": 1
+    },
+    {
+      "id": 10,
+      "name": "Chocolate Muffin",
+      "unit": 5,
+      "priceUSD": 3.75,
+      "priceEUR": 3.45,
+      "priceGBP": 2.97,
+      "imageUrl": "https://images.unsplash.com/photo-1607958996333-41aef7caefaa?w=800&h=600&q=50",
+      "category": 1
+    }
+  ]
+}
