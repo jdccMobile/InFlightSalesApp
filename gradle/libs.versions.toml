@@ -27,6 +27,11 @@ arrowCore = "1.1.2"
 room = "2.8.3"
 # ksp
 ksp = "2.2.21-2.0.4"
+# Testing
+kotlinxCoroutinesTest = "1.10.2"
+turbine = "1.2.1"
+mockitoCore = "5.20.0"
+mockitoKotlin = "6.1.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -65,6 +70,11 @@ arrow-core = { module = "io.arrow-kt:arrow-core", version.ref = "arrowCore" }
 room-common = { group = "androidx.room", name = "room-common", version.ref = "room" }
 room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+# Tesing
+turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
+mockito-core = { module = "org.mockito:mockito-core", version.ref = "mockitoCore" }
+mockito-kotlin = { module = "org.mockito.kotlin:mockito-kotlin", version.ref = "mockitoKotlin" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinxCoroutinesTest" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -33,7 +33,7 @@ fun Currency.formatPrice(amount: BigDecimal): String {
 fun Currency.getLocale(): Locale {
     return when (this) {
         Currency.USD -> Locale.US
-        Currency.EUR -> Locale("es", "ES") // o Locale.FRANCE
+        Currency.EUR -> Locale("es", "ES")
         Currency.GBP -> Locale.UK
     }
 }

@@ -80,4 +80,10 @@ dependencies {
     implementation(libs.room.common)
     implementation(libs.room.runtime)
     ksp(libs.room.compiler)
+    // Testing
+    testImplementation(libs.junit)
+    testImplementation(libs.mockito.core)
+    testImplementation(libs.mockito.kotlin)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.turbine)
 }

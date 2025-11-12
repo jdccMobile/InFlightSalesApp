@@ -1,6 +1,5 @@
 package com.jdmobile.inflightsalesapp.ui.screens.product
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jdmobile.inflightsalesapp.domain.model.Currency
@@ -47,7 +46,6 @@ class ProductViewModel(
     }
 
     private fun handleError(error: Throwable) {
-        Log.e(TAG, "Error loading products", error)
         _state.update { it.copy(isLoading = false, hasError = true) }
     }
 
@@ -70,10 +68,9 @@ class ProductViewModel(
         viewModelScope.launch {
             syncProductsUseCase()
                 .fold(
-                    ifLeft = { Log.e(TAG, "Failed to sync products") },
+                    ifLeft = {},
                     ifRight = {
                         ProductSyncState.isSynced = true
-                        Log.d(TAG, "Products synced successfully")
                     }
                 )
         }
@@ -311,5 +308,3 @@ data class ProductScreenActions(
 object ProductSyncState {
     var isSynced = false
 }
-
-private const val TAG = "ProductViewModel"
