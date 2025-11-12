@@ -1,5 +1,7 @@
 package com.jdmobile.inflightsalesapp.di
 
+import com.jdmobile.inflightsalesapp.domain.service.PaymentValidator
+import com.jdmobile.inflightsalesapp.domain.service.PriceCalculator
 import com.jdmobile.inflightsalesapp.domain.usecase.GetProductsUseCase
 import com.jdmobile.inflightsalesapp.domain.usecase.SyncProductsUseCase
 import com.jdmobile.inflightsalesapp.domain.usecase.UpdateProductStockUseCase
@@ -10,4 +12,7 @@ val domainModule = module {
     factoryOf(::GetProductsUseCase)
     factoryOf(::SyncProductsUseCase)
     factoryOf(::UpdateProductStockUseCase)
+
+    factoryOf(::PriceCalculator)
+    factoryOf(::PaymentValidator)
 }

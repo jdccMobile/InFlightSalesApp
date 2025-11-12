@@ -10,6 +10,7 @@
     <string name="all_products">All Products</string>
     <string name="food">Food</string>
     <string name="beverages">Beverages</string>
+    <string name="pay_without_price">PAY</string>
     <string name="pay">PAY %1$s %2$s</string>
     <string name="customer_type_retail">Retail</string>
     <string name="customer_type_crew">Crew</string>
@@ -49,6 +50,14 @@
     <string name="payment_successfully_completed">Payment successfully completed!</string>
     <string name="thank_you_for_your_purchase">Thank you for your purchase</string>
     <string name="back_to_products">Back to products</string>
-    <string name="seat">Seat</string>
-    <string name="select">Select</string>
+    <string name="cart">Cart</string>
+    <string name="no_products_added">No hay productos agregados</string>
+    <string name="seat">Asiento</string>
+    <string name="select">Seleccionar</string>
+    <string name="insufficient_cash">El efectivo recibido debe ser mayor o igual al total</string>
+    <string name="card_payment">Pago con tarjeta</string>
+    <string name="expiration">Vencimiento</string>
+    <string name="complete_all_fields">Por favor completa todos los campos</string>
+    <string name="payment_successful">¡Pago realizado correctamente!</string>
+    <string name="thank_you">Gracias por su compra</string>
 </resources>

@@ -2,33 +2,38 @@ package com.jdmobile.inflightsalesapp.ui.screens.receipt
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.jdmobile.inflightsalesapp.domain.model.Currency
 import com.jdmobile.inflightsalesapp.domain.model.ProductId
+import com.jdmobile.inflightsalesapp.domain.service.PaymentValidator
 import com.jdmobile.inflightsalesapp.domain.usecase.GetProductsUseCase
 import com.jdmobile.inflightsalesapp.domain.usecase.UpdateProductStockUseCase
-import com.jdmobile.inflightsalesapp.ui.screens.product.SelectedProductsUi
-import com.jdmobile.inflightsalesapp.ui.screens.product.model.Currency
+import com.jdmobile.inflightsalesapp.ui.screens.product.model.CartItem
 import com.jdmobile.inflightsalesapp.ui.screens.product.model.ProductUi
 import com.jdmobile.inflightsalesapp.ui.screens.product.model.toUi
+import com.jdmobile.inflightsalesapp.domain.model.CardData
+import com.jdmobile.inflightsalesapp.ui.screens.receipt.model.ReceiptInitialData
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.math.BigDecimal
 
 class ReceiptViewModel(
     private val screenActions: ReceiptScreenActions,
-    private val receiptInitialData: ReceiptInitialData,
+    private val initialData: ReceiptInitialData,
     private val getProductsUseCase: GetProductsUseCase,
-    private val updateProductStockUseCase: UpdateProductStockUseCase
+    private val updateProductStockUseCase: UpdateProductStockUseCase,
+    private val paymentValidator: PaymentValidator = PaymentValidator()
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(
+    private val _state = MutableStateFlow(
         ReceiptUiState(
-            selectedCurrency = receiptInitialData.currency,
+            selectedCurrency = initialData.currency
         )
     )
-    val uiState: StateFlow<ReceiptUiState> = _uiState.asStateFlow()
+    val state: StateFlow<ReceiptUiState> = _state.asStateFlow()
 
     init {
         loadProducts()
@@ -38,20 +43,15 @@ class ReceiptViewModel(
         viewModelScope.launch {
             getProductsUseCase().collect { domainProducts ->
                 val allProducts = domainProducts.map { it.toUi() }
+                val receiptProducts = mapCartToReceiptProducts(
+                    cart = initialData.cart,
+                    allProducts = allProducts
+                )
 
-                val selectedProducts = receiptInitialData.selectedProducts.mapNotNull { selected ->
-                    allProducts.find { it.id == selected.productId }?.copy(
-                        unitsSelected = selected.quantity,
-                        finalPrice = selected.totalPrice.toDouble()
-                    )
-                }
-
-                val total = selectedProducts.sumOf { it.finalPrice }
-
-                _uiState.update {
+                _state.update {
                     it.copy(
-                        products = selectedProducts,
-                        total = total,
+                        products = receiptProducts,
+                        total = calculateTotal(receiptProducts),
                         isLoading = false
                     )
                 }
@@ -59,61 +59,95 @@ class ReceiptViewModel(
         }
     }
 
-    fun onNavBack() {
+    private fun mapCartToReceiptProducts(
+        cart: List<CartItem>,
+        allProducts: List<ProductUi>
+    ): List<ProductUi> {
+        return cart.mapNotNull { cartItem ->
+            allProducts.find { it.id == cartItem.productId }?.let { product ->
+                val quantityBD = BigDecimal.valueOf(cartItem.quantity.toLong())
+                val unitPrice = if (cartItem.quantity > 0) cartItem.totalPrice.divide(quantityBD) else BigDecimal.ZERO
+
+                product.copy(
+                    unitsSelected = cartItem.quantity,
+                    finalPrice = unitPrice
+                )
+            }
+        }
+    }
+    fun onNavigateBack() {
         screenActions.onNavBack()
     }
 
-    fun onRemoveProduct(productId: ProductId) {
-        _uiState.update { state ->
-            val updatedProducts = state.products.filter { it.id != productId }
-            val total = calculateTotal(products = updatedProducts)
-
-            state.copy(
+    fun onProductRemoved(productId: ProductId) {
+        _state.update { currentState ->
+            val updatedProducts = currentState.products.filter { it.id != productId }
+            currentState.copy(
                 products = updatedProducts,
-                total = total
+                total = calculateTotal(updatedProducts)
             )
         }
     }
 
     fun onSeatNumberChanged(seatNumber: String) {
-        _uiState.update { it.copy(seatNumber = seatNumber) }
+        _state.update { it.copy(seatNumber = seatNumber) }
     }
 
     fun onCashPaymentClicked() {
-        if (uiState.value.seatNumber.isNotBlank() && uiState.value.products.isNotEmpty()) {
-            _uiState.update { it.copy(showCashDialog = true, showValidationError = false) }
+        val currentState = _state.value
+        if (!canProcessPayment(currentState)) return
+
+        _state.update {
+            it.copy(
+                showCashDialog = true,
+                hasValidationError = false
+            )
         }
     }
 
-    fun onDismissCashDialog() {
-        _uiState.update { it.copy(showCashDialog = false, cashAmount = "") }
+    fun onCashDialogDismissed() {
+        _state.update {
+            it.copy(
+                showCashDialog = false,
+                cashAmount = "",
+                hasValidationError = false
+            )
+        }
     }
 
     fun onCashAmountChanged(amount: String) {
-        _uiState.update { it.copy(cashAmount = amount) }
+        _state.update { it.copy(cashAmount = amount) }
     }
 
-    fun onProcessCashPayment() {
+    fun onCashPaymentProcessed() {
+        val currentState = _state.value
+        val validationResult = paymentValidator.validateCashPayment(
+            cashAmount = currentState.cashAmount,
+            total = currentState.total
+        )
+
+        if (!validationResult.isValid) {
+            _state.update { it.copy(hasValidationError = true) }
+            return
+        }
+
+        processCashPayment()
+    }
+
+    private fun processCashPayment() {
         viewModelScope.launch {
-            val cashAmount = _uiState.value.cashAmount.toDoubleOrNull() ?: 0.0
-
-            if (cashAmount < _uiState.value.total) {
-                _uiState.update { it.copy(showValidationError = true) }
-                return@launch
-            }
-
-            _uiState.update {
+            _state.update {
                 it.copy(
                     showCashDialog = false,
                     isProcessingPayment = true,
-                    showValidationError = false
+                    hasValidationError = false
                 )
             }
 
-            delay(2000)  // Simulate payment processing
-            updateStock()
+            delay(PAYMENT_PROCESSING_DELAY)
+            updateProductStock()
 
-            _uiState.update {
+            _state.update {
                 it.copy(
                     isProcessingPayment = false,
                     showSuccessDialog = true
@@ -123,58 +157,80 @@ class ReceiptViewModel(
     }
 
     fun onCardPaymentClicked() {
-        if (uiState.value.seatNumber.isNotBlank() && uiState.value.products.isNotEmpty()) {
-            _uiState.update { it.copy(showCardDialog = true) }
+        val currentState = _state.value
+        if (!canProcessPayment(currentState)) return
+
+        _state.update {
+            it.copy(
+                showCardDialog = true,
+                hasValidationError = false
+            )
         }
     }
 
-    fun onDismissCardDialog() {
-        _uiState.update { it.copy(showCardDialog = false) }
+    fun onCardDialogDismissed() {
+        _state.update {
+            it.copy(
+                showCardDialog = false,
+                cardData = CardData(),
+                hasValidationError = false
+            )
+        }
     }
 
     fun onCardNumberChanged(cardNumber: String) {
-        _uiState.update { it.copy(cardNumber = cardNumber) }
+        _state.update {
+            it.copy(cardData = it.cardData.copy(number = cardNumber))
+        }
     }
 
     fun onExpirationDateChanged(expirationDate: String) {
-        _uiState.update { it.copy(expirationDate = expirationDate) }
+        _state.update {
+            it.copy(cardData = it.cardData.copy(expirationDate = expirationDate))
+        }
     }
 
     fun onCvvChanged(cvv: String) {
-        _uiState.update { it.copy(cvv = cvv) }
+        _state.update {
+            it.copy(cardData = it.cardData.copy(cvv = cvv))
+        }
     }
 
-    fun onCardholderNameChanged(cardholderName: String) {
-        _uiState.update { it.copy(cardholderName = cardholderName) }
+    fun onCardholderNameChanged(name: String) {
+        _state.update {
+            it.copy(cardData = it.cardData.copy(holderName = name))
+        }
     }
 
-    fun onProcessCardPayment() {
+    fun onCardPaymentProcessed() {
+        val currentState = _state.value
+        val validationResult = paymentValidator.validateCardPayment(
+            cardData = currentState.cardData,
+            hasSeatNumber = currentState.seatNumber.isNotBlank()
+        )
+
+        if (!validationResult.isValid) {
+            _state.update { it.copy(hasValidationError = true) }
+            return
+        }
+
+        processCardPayment()
+    }
+
+    private fun processCardPayment() {
         viewModelScope.launch {
-            val state = _uiState.value
-
-            val isValid = state.cardNumber.isNotBlank() &&
-                    state.expirationDate.isNotBlank() &&
-                    state.cvv.isNotBlank() &&
-                    state.cardholderName.isNotBlank() &&
-                    state.seatNumber.isNotBlank()
-
-            if (!isValid) {
-                _uiState.update { it.copy(showValidationError = true) }
-                return@launch
-            }
-
-            _uiState.update {
+            _state.update {
                 it.copy(
                     showCardDialog = false,
                     isProcessingPayment = true,
-                    showValidationError = false
+                    hasValidationError = false
                 )
             }
 
-            delay(2000) // Simulate payment processing
-            updateStock()
+            delay(PAYMENT_PROCESSING_DELAY)
+            updateProductStock()
 
-            _uiState.update {
+            _state.update {
                 it.copy(
                     isProcessingPayment = false,
                     showSuccessDialog = true
@@ -183,11 +239,11 @@ class ReceiptViewModel(
         }
     }
 
-    private fun updateStock() {
-
+    private fun updateProductStock() {
         viewModelScope.launch {
-        val products = _uiState.value.products
-            products.map { product ->
+            val products = _state.value.products
+
+            products.forEach { product ->
                 updateProductStockUseCase(
                     productId = product.id,
                     quantitySold = product.unitsSelected
@@ -196,33 +252,36 @@ class ReceiptViewModel(
         }
     }
 
-    fun onDismissSuccessDialog() {
-        _uiState.update { it.copy(showSuccessDialog = false) }
+    fun onSuccessDialogDismissed() {
+        _state.update { it.copy(showSuccessDialog = false) }
         screenActions.onNavToProducts()
     }
 
-    private fun calculateTotal(products: List<ProductUi>): Double {
-        return products.sumOf { product -> product.finalPrice }
+    private fun canProcessPayment(state: ReceiptUiState): Boolean {
+        return state.seatNumber.isNotBlank() && state.products.isNotEmpty()
     }
+
+    private fun calculateTotal(products: List<ProductUi>): BigDecimal {
+        return products.fold(BigDecimal.ZERO) { acc, product ->
+            acc + (product.finalPrice * BigDecimal.valueOf(product.unitsSelected.toLong()))
+        }
+    }
+
 }
 
 data class ReceiptUiState(
     val isLoading: Boolean = true,
     val products: List<ProductUi> = emptyList(),
     val selectedCurrency: Currency = Currency.USD,
-    val total: Double = 0.0,
-    val selectedPaymentMethod: PaymentMethod = PaymentMethod.CASH,
+    val total: BigDecimal = BigDecimal.ZERO,
     val seatNumber: String = "",
-    val cardNumber: String = "",
-    val expirationDate: String = "",
-    val cvv: String = "",
-    val cardholderName: String = "",
+    val cardData: CardData = CardData(),
     val cashAmount: String = "",
     val showCardDialog: Boolean = false,
     val showCashDialog: Boolean = false,
     val isProcessingPayment: Boolean = false,
     val showSuccessDialog: Boolean = false,
-    val showValidationError: Boolean = false,
+    val hasValidationError: Boolean = false
 )
 
 data class ReceiptScreenActions(
@@ -230,12 +289,4 @@ data class ReceiptScreenActions(
     val onNavToProducts: () -> Unit,
 )
 
-enum class PaymentMethod {
-    CASH,
-    CARD
-}
-
-data class ReceiptInitialData(
-    val selectedProducts: List<SelectedProductsUi>,
-    val currency: Currency,
-)
+private const val PAYMENT_PROCESSING_DELAY = 2000L

@@ -17,8 +17,7 @@ fun NavHost() {
     ) {
         composable<Route.Product> {
             ProductDestination(
-                onNavBack = { navController.popBackStack() },
-                onNavToReceipt = { selectedProducts, currency ->
+                onNavigateToReceipt = { selectedProducts, currency ->
                     navController.navigate(
                         Route.Receipt(
                             selectedProducts = selectedProducts,
@@ -32,9 +31,9 @@ fun NavHost() {
         composable<Route.Receipt> { backStackEntry ->
             val receiptParams = backStackEntry.toRoute<Route.Receipt>()
             ReceiptDestination(
-                onNavBack = { navController.popBackStack() },
-                onNavToProducts = { navController.navigate(Route.Product) },
-                selectedProducts = receiptParams.selectedProducts,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToProducts = { navController.navigate(Route.Product) },
+                cart = receiptParams.selectedProducts,
                 currency = receiptParams.currency,
             )
         }

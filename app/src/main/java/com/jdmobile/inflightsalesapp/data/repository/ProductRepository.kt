@@ -59,28 +59,13 @@ private fun ProductResponse.toEntity(): ProductEntity =
         category = this.category
     )
 
-private fun ProductResponse.toDomain(): Product = Product(
-    id = ProductId(this.id),
-    name = this.name,
-    stock = this.unit,
-    priceUSD = this.priceUSD,
-    priceEUR = this.priceEUR,
-    priceGBP = this.priceGBP,
-    imageUrl = this.imageUrl,
-    category = when (this.category) {
-        1 -> ProductFilter.FOOD
-        2 -> ProductFilter.BEVERAGES
-        else -> ProductFilter.FOOD
-    }
-)
-
 private fun ProductEntity.toDomain(): Product = Product(
     id = ProductId(this.id),
     name = this.name,
     stock = this.unit,
-    priceUSD = this.priceUSD,
-    priceEUR = this.priceEUR,
-    priceGBP = this.priceGBP,
+    priceUSD = this.priceUSD.toBigDecimal(),
+    priceEUR = this.priceEUR.toBigDecimal(),
+    priceGBP = this.priceGBP.toBigDecimal(),
     imageUrl = this.imageUrl,
     category = when (this.category) {
         1 -> ProductFilter.FOOD
