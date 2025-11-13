@@ -68,7 +68,9 @@ class ProductViewModel(
         viewModelScope.launch {
             syncProductsUseCase()
                 .fold(
-                    ifLeft = {},
+                    ifLeft = {
+                        handleError(it)
+                    },
                     ifRight = {
                         ProductSyncState.isSynced = true
                     }
