@@ -1,6 +1,11 @@
 # Inflight Sales App
 An Android application to simulate the management of onboard product sales with support for multiple currencies and discounts by customer type.
 
+<p align="center">
+  <img src="https://github.com/jdccMobile/InFlightSalesApp/blob/master/demo.gif" width="200" height="400" alt="Demo"></a>
+</p>
+
+
 ## Project Setup
 ### Requirements
 - Android Studio Otter (2025.2.1) 
